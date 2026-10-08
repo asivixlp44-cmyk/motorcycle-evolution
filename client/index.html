@@ -1,0 +1,696 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>+1 Motorcycle Evolution</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%8D%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap">
+<style>
+:root {
+    color-scheme: dark;
+    --ink: #16121f;
+    --panel: #173a6e;
+    --panel-2: #1f4c8a;
+    --yellow: #ffd028;
+    --green: #46ec50;
+    --blue: #28c8ff;
+    --red: #e82434;
+    --purple: #c428ff;
+    --white: #ffffff;
+    --font: "Fredoka", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+    font-size: clamp(10px, calc(100vmin / 52), 17px);
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; overflow: hidden; background: #3f58e8; }
+body { font-family: var(--font); color: var(--white); user-select: none; -webkit-user-select: none; touch-action: none; }
+#app { position: fixed; inset: 0; }
+#view { position: absolute; inset: 0; width: 100%; height: 100%; display: block; outline: none; }
+button { font-family: var(--font); cursor: pointer; color: var(--white); }
+button:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+
+.o { text-shadow: -2px -2px 0 var(--ink), 2px -2px 0 var(--ink), -2px 2px 0 var(--ink), 2px 2px 0 var(--ink), 0 2px 0 var(--ink), 0 -2px 0 var(--ink), 2px 0 0 var(--ink), -2px 0 0 var(--ink); }
+.o1 { text-shadow: -1px -1px 0 var(--ink), 1px -1px 0 var(--ink), -1px 1px 0 var(--ink), 1px 1px 0 var(--ink), 0 1.5px 0 var(--ink); }
+
+.btn {
+    border: 3px solid var(--ink); border-radius: 0.9rem; font-weight: 700;
+    box-shadow: inset 0 -0.3rem 0 rgba(0, 0, 0, 0.22), 0 0.2rem 0 var(--ink);
+    transition: transform 0.08s ease;
+}
+.btn:active { transform: translateY(2px) scale(0.97); }
+.g-yellow { background: linear-gradient(#ffe36b, #ffb51c); }
+.g-green { background: linear-gradient(#7dff6b, #22c73a); }
+.g-blue { background: linear-gradient(#6fe0ff, #1f8fff); }
+.g-red { background: linear-gradient(#ff6b6b, #d8182c); }
+.g-purple { background: linear-gradient(#e27bff, #8a1cff); }
+.g-pink { background: linear-gradient(#ff8fd0, #ff3fa0); }
+.g-grey { background: linear-gradient(#9fb4d6, #5f7598); }
+
+/* HUD ------------------------------------------------------------------ */
+#hud { position: absolute; inset: 0; pointer-events: none; padding: env(safe-area-inset-top, 0px) max(1rem, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(1rem, env(safe-area-inset-left, 0px)); }
+#hud > * { pointer-events: auto; }
+#hud .passive { pointer-events: none; }
+
+#leftCol { position: absolute; left: max(1rem, env(safe-area-inset-left, 0px)); top: 50%; transform: translateY(-50%); display: grid; grid-template-columns: repeat(2, 4.6rem); gap: 0.6rem; }
+.sq { width: 4.6rem; height: 4.6rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.1rem; position: relative; padding: 0; }
+.sq .ic { font-size: 1.9rem; line-height: 1; }
+.sq .lb { font-size: 0.95rem; line-height: 1; }
+.badge { position: absolute; top: -0.5rem; right: -0.5rem; background: var(--red); border: 2px solid var(--ink); border-radius: 1rem; font-size: 0.8rem; padding: 0.05rem 0.4rem; font-weight: 700; }
+
+#stats { position: absolute; right: max(1rem, env(safe-area-inset-right, 0px)); top: calc(env(safe-area-inset-top, 0px) + 4.4rem); display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem; }
+.stat { display: flex; align-items: center; gap: 0.45rem; background: rgba(22, 18, 31, 0.55); border: 2px solid rgba(255, 255, 255, 0.25); border-radius: 2rem; padding: 0.2rem 0.9rem 0.2rem 0.5rem; font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.stat .ic { font-size: 1.5rem; }
+
+#rightCol { position: absolute; right: max(1rem, env(safe-area-inset-right, 0px)); top: 50%; transform: translateY(-42%); display: flex; flex-direction: column; align-items: stretch; gap: 0.55rem; width: 10.6rem; }
+#customSpeed { background: linear-gradient(#2a64b0, #173a6e); border: 3px solid var(--ink); border-radius: 0.9rem; padding: 0.4rem 0.6rem 0.5rem; display: grid; gap: 0.2rem; text-align: center; }
+#customSpeed label { font-size: 1rem; font-weight: 700; }
+#customSpeed .row { display: flex; gap: 0.3rem; align-items: center; }
+#speedInput { width: 100%; min-width: 0; font: 700 1.2rem var(--font); text-align: center; border: 2px solid var(--ink); border-radius: 0.5rem; background: #f0f8ff; color: var(--ink); padding: 0.15rem 0.2rem; }
+#customSpeed small { font-size: 0.85rem; color: #cfe6ff; font-weight: 600; }
+.pbtn { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; padding: 0.35rem 0.6rem; font-size: 1.05rem; }
+.pbtn > .o1 { white-space: nowrap; }
+.pbtn .price { font-size: 0.8rem; background: rgba(22, 18, 31, 0.35); border-radius: 0.5rem; padding: 0.1rem 0.35rem; white-space: nowrap; }
+
+#offer { position: absolute; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 0.7rem); transform: translateX(-50%); display: flex; align-items: center; gap: 0.7rem; background: linear-gradient(#1a8aa8, #0d4a6e); border: 3px solid var(--ink); border-radius: 1rem; padding: 0.4rem 0.5rem 0.4rem 0.8rem; box-shadow: 0 0.25rem 0 var(--ink); }
+#offer .ic { font-size: 2.2rem; }
+#offer .tx { display: grid; line-height: 1.05; }
+#offer .tt { font-size: 1.15rem; font-weight: 700; color: var(--yellow); }
+#offer .sub { font-size: 0.85rem; color: #d8f0ff; font-variant-numeric: tabular-nums; }
+#offer .yes, #offer .no { font-size: 0.95rem; padding: 0.3rem 0.6rem; }
+
+#boost { position: absolute; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 8.6rem); transform: translateX(-50%); font-size: 1.1rem; font-weight: 700; color: var(--yellow); white-space: nowrap; }
+
+#bottom { position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 0.9rem); transform: translateX(-50%); display: grid; justify-items: center; gap: 0.35rem; width: min(26rem, 70vw); }
+#sprintHint { font-size: 1.25rem; font-weight: 700; color: var(--yellow); letter-spacing: 0.02em; }
+.bar { position: relative; width: 100%; height: 1.9rem; background: #0c2548; border: 3px solid var(--ink); border-radius: 1rem; overflow: hidden; }
+.bar .fill { position: absolute; inset: 0 auto 0 0; width: 0%; transition: width 0.15s linear; }
+#levelBar .fill { background: linear-gradient(#8dff5e, #28c43c); }
+#stamBar { height: 1.3rem; width: 70%; }
+#stamBar .fill { background: linear-gradient(#7fe8ff, #1a9cff); }
+.bar span { position: absolute; top: 50%; transform: translateY(-50%); font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+#levelTxt { left: 0.7rem; font-size: 1.05rem; }
+#xpTxt { right: 0.7rem; font-size: 0.95rem; }
+#stamTxt { left: 50%; transform: translate(-50%, -50%); font-size: 0.85rem; }
+
+#stageTitle { position: absolute; left: 50%; top: 20%; transform: translateX(-50%); text-align: center; pointer-events: none; transition: opacity 0.6s ease; }
+#stageTitle .n { font-size: 6.5rem; font-weight: 700; line-height: 1; color: #fff; text-shadow: -4px -4px 0 #1a1f5c, 4px -4px 0 #1a1f5c, -4px 4px 0 #1a1f5c, 4px 4px 0 #1a1f5c, 0 5px 0 #1a1f5c, 0 -5px 0 #1a1f5c, 5px 0 0 #1a1f5c, -5px 0 0 #1a1f5c, 0 8px 0 #0e1238; }
+#stageTitle .s { font-size: 2.6rem; font-weight: 700; line-height: 1.1; }
+#stageTitle .s:empty { display: none; }
+
+#toasts { position: absolute; left: 50%; top: 33%; transform: translateX(-50%); display: grid; justify-items: center; gap: 0.3rem; pointer-events: none; }
+.toast { font-size: 1.5rem; font-weight: 700; white-space: nowrap; animation: toast 2.4s ease forwards; }
+@keyframes toast { 0% { opacity: 0; transform: translateY(0.6rem) scale(0.9); } 10% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-0.6rem); } }
+
+#levelBanner { position: absolute; left: 50%; top: 12%; transform: translateX(-50%); font-size: 2.6rem; font-weight: 700; color: var(--green); pointer-events: none; white-space: nowrap; }
+#levelBanner.show { animation: banner 2.2s ease forwards; }
+@keyframes banner { 0% { opacity: 0; transform: translateX(-50%) scale(0.5); } 12% { opacity: 1; transform: translateX(-50%) scale(1.15); } 22% { transform: translateX(-50%) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; } }
+
+#promptBtn { position: absolute; transform: translate(-50%, -100%); display: flex; align-items: center; gap: 0.5rem; background: rgba(22, 18, 31, 0.8); border: 2px solid rgba(255, 255, 255, 0.5); border-radius: 0.8rem; padding: 0.35rem 0.8rem 0.35rem 0.4rem; font-size: 1.1rem; font-weight: 600; white-space: nowrap; }
+#promptBtn kbd { font: 700 1rem var(--font); background: var(--white); color: var(--ink); border-radius: 0.4rem; padding: 0.1rem 0.5rem; }
+
+/* Touch controls */
+#touch { position: absolute; inset: 0; pointer-events: none; }
+#stick { position: absolute; left: max(1.5rem, env(safe-area-inset-left, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 1.5rem); width: 9rem; height: 9rem; border-radius: 50%; background: rgba(255, 255, 255, 0.12); border: 3px solid rgba(255, 255, 255, 0.35); pointer-events: auto; touch-action: none; }
+#knob { position: absolute; left: 50%; top: 50%; width: 3.8rem; height: 3.8rem; margin: -1.9rem 0 0 -1.9rem; border-radius: 50%; background: rgba(255, 255, 255, 0.55); border: 3px solid rgba(22, 18, 31, 0.6); }
+#jumpBtn, #sprintBtn { position: absolute; border-radius: 50%; pointer-events: auto; touch-action: none; font-size: 1rem; }
+#jumpBtn { right: max(1.5rem, env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 2rem); width: 6rem; height: 6rem; }
+#sprintBtn { right: calc(max(1.5rem, env(safe-area-inset-right, 0px)) + 6.8rem); bottom: calc(env(safe-area-inset-bottom, 0px) + 1.2rem); width: 4.6rem; height: 4.6rem; }
+#sprintBtn.on { filter: brightness(1.3); outline: 3px solid var(--white); }
+body.touch #bottom { bottom: calc(env(safe-area-inset-bottom, 0px) + 0.5rem); width: min(20rem, 46vw); }
+@media (max-width: 600px) {
+    body.touch #bottom { bottom: calc(env(safe-area-inset-bottom, 0px) + 11.5rem); width: min(22rem, 78vw); }
+    #rightCol { width: 7.4rem; top: 42%; }
+    #customSpeed label { font-size: 0.85rem; }
+    .pbtn { font-size: 0.9rem; padding: 0.35rem 0.5rem; justify-content: center; }
+    .pbtn .price { display: none; }
+    #offer { gap: 0.4rem; padding: 0.3rem 0.4rem 0.3rem 0.5rem; max-width: 64vw; }
+    #offer .ic { font-size: 1.6rem; }
+    #offer .tt { font-size: 0.95rem; white-space: nowrap; }
+    #offer .yes, #offer .no { font-size: 0.8rem; padding: 0.25rem 0.45rem; }
+    #leftCol { top: 58%; }
+    #acctName { display: none; }
+    /* Top-left belongs to the Bloxity overlay; on phones the offer banner has no safe spot, the Store covers it */
+    #offer { display: none !important; }
+}
+/* Bux coin */
+.bx { display: inline-block; width: 1em; height: 1em; margin-right: 0.18em; vertical-align: -0.12em; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff6b0 0 18%, #ffd23a 40%, #e79a0c 100%); box-shadow: inset 0 0 0 0.09em #b86f00, 0 0.06em 0 rgba(0, 0, 0, 0.35); position: relative; font-style: normal; }
+.bx::after { content: "B"; position: absolute; inset: 0; display: grid; place-items: center; font: 700 0.62em/1 var(--font); color: #9a5a00; text-shadow: none; }
+body.touch #sprintHint { display: none; }
+
+/* Panels ----------------------------------------------------------------- */
+.overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(4, 16, 36, 0.45); padding: 1rem; }
+.panel { width: min(34rem, 100%); max-height: min(34rem, 88vh); display: flex; flex-direction: column; background: var(--panel); border: 4px solid var(--ink); border-radius: 1.3rem; box-shadow: 0 0.4rem 0 var(--ink); overflow: hidden; }
+.panel header { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.7rem 0.6rem 1.1rem; background: linear-gradient(#2aa8e0, #1466b0); border-bottom: 4px solid var(--ink); }
+.panel h2 { margin: 0; font-size: 1.9rem; font-weight: 700; }
+.panel .x { width: 2.6rem; height: 2.6rem; font-size: 1.3rem; padding: 0; }
+.panel .body { padding: 0.9rem; overflow-y: auto; display: grid; gap: 0.6rem; }
+.row-card { display: grid; grid-template-columns: 3rem 1fr auto; align-items: center; gap: 0.7rem; background: var(--panel-2); border: 3px solid var(--ink); border-radius: 0.9rem; padding: 0.5rem 0.6rem; }
+.row-card .ic { font-size: 2rem; text-align: center; }
+.row-card .nm { font-size: 1.2rem; font-weight: 700; line-height: 1.1; }
+.row-card .ds { font-size: 0.9rem; color: #bfd8f5; }
+.row-card button { font-size: 1rem; padding: 0.4rem 0.8rem; min-width: 6.4rem; }
+.row-card button:disabled { filter: grayscale(0.8) brightness(0.8); cursor: default; }
+.daily-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(6.2rem, 1fr)); gap: 0.5rem; }
+.day { display: grid; justify-items: center; gap: 0.15rem; background: var(--panel-2); border: 3px solid var(--ink); border-radius: 0.9rem; padding: 0.45rem 0.3rem; text-align: center; }
+.day .dn { font-size: 0.95rem; font-weight: 700; color: var(--yellow); }
+.day .di { font-size: 1.8rem; line-height: 1.1; }
+.day .dr { font-size: 0.85rem; font-weight: 600; line-height: 1.15; }
+.day.done { filter: grayscale(0.7) brightness(0.8); }
+.day.today { border-color: var(--green); box-shadow: 0 0 0 3px rgba(70, 236, 80, 0.45); }
+.daily-head { text-align: center; font-size: 1.4rem; font-weight: 700; }
+.daily-claim { font-size: 1.4rem; padding: 0.55rem; }
+.sec { font-size: 1.05rem; font-weight: 700; color: var(--yellow); letter-spacing: 0.04em; text-transform: uppercase; margin-top: 0.2rem; }
+.rebirth-box { display: grid; gap: 0.7rem; text-align: center; }
+.rebirth-box .big { font-size: 2.6rem; font-weight: 700; }
+.rebirth-box .mult { display: flex; justify-content: center; align-items: center; gap: 1rem; font-size: 1.8rem; font-weight: 700; }
+.rebirth-box p { margin: 0; font-size: 1rem; color: #cfe6ff; }
+.rebirth-box button { font-size: 1.5rem; padding: 0.6rem; }
+
+#buy .panel { width: min(24rem, 100%); }
+#revive .panel { width: min(24rem, 100%); }
+#reviveTimer { font-size: 1rem; color: #ffd0d0; }
+.buy-body { display: grid; gap: 0.8rem; justify-items: center; text-align: center; padding: 1.2rem 1rem 1rem; }
+.buy-body .item { font-size: 1.6rem; font-weight: 700; }
+.buy-body .cost { font-size: 1.3rem; font-weight: 700; color: #7dff6b; }
+.buy-body .note { font-size: 0.9rem; color: #bfd8f5; margin: 0; }
+.buy-body .acts { display: flex; gap: 0.7rem; width: 100%; }
+.buy-body .acts button { flex: 1; font-size: 1.25rem; padding: 0.55rem; }
+
+/* Start screen ------------------------------------------------------------ */
+#start { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 1rem; background: radial-gradient(ellipse at center, rgba(120, 60, 220, 0.45), rgba(16, 10, 44, 0.94)); }
+.controls kbd, #promptBtn kbd, .pad-hint kbd { text-shadow: none; }
+.row-card button:focus-visible, .seg .btn:focus-visible, .set-row input:focus-visible, .rebirth-box button:focus-visible { outline: 4px solid var(--yellow); outline-offset: 3px; }
+#loading { font-size: 1.3rem; font-weight: 700; }
+.loader { display: grid; justify-items: center; gap: 0.9rem; text-align: center; }
+.loader-ball { font-size: 4rem; animation: ballSpin 1.1s linear infinite; }
+@keyframes ballSpin { to { transform: rotate(360deg); } }
+#playBtn { font-size: 1.4rem; padding: 0.45rem 1.6rem; }
+#tips { position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 7.2rem); transform: translateX(-50%); display: flex; flex-wrap: wrap; justify-content: center; gap: 0.35rem 1rem; max-width: min(40rem, 92vw); font-size: 1rem; font-weight: 600; color: #eaf6ff; background: rgba(22, 18, 31, 0.55); border-radius: 1rem; padding: 0.45rem 0.9rem; pointer-events: none; transition: opacity 0.8s ease; }
+#tips kbd { font: 700 0.85rem var(--font); background: var(--white); color: var(--ink); border-radius: 0.35rem; padding: 0.05rem 0.4rem; margin-right: 0.25rem; text-shadow: none; }
+body.touch #tips { bottom: calc(env(safe-area-inset-bottom, 0px) + 16rem); }
+.err { color: #ffb0b0; font-size: 1.05rem; font-weight: 600; max-width: 28rem; }
+
+/* Short landscape phones: three columns keep the buttons clear of the joystick */
+@media (max-height: 460px) {
+    .pbtn { justify-content: center; }
+    .pbtn .price { display: none; }
+}
+@media (max-width: 700px), (max-height: 460px) {
+    #rightCol { width: 8rem; }
+    #offer .tx .sub { display: none; }
+    #stageTitle .n { font-size: 3rem; }
+    #stageTitle .s { font-size: 2rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .toast, #levelBanner.show { animation-duration: 0.01s; animation-delay: 0s; }
+}
+
+/* ---------- Premium polish ---------- */
+#speedLines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.btn { transition: transform 0.18s cubic-bezier(0.34, 1.8, 0.5, 1), filter 0.15s ease, box-shadow 0.15s ease; }
+.btn:hover:not(:disabled) { transform: translateY(-2px) scale(1.05); filter: brightness(1.08); }
+.btn:active:not(:disabled) { transform: translateY(2px) scale(0.94); transition-duration: 0.06s; }
+.sq .ic { transition: transform 0.25s cubic-bezier(0.34, 1.8, 0.5, 1); }
+.sq:hover .ic { transform: rotate(-10deg) scale(1.15); }
+
+#acct { position: absolute; right: calc(max(1rem, env(safe-area-inset-right, 0px)) + 3.6rem); top: calc(env(safe-area-inset-top, 0px) + 0.8rem); display: flex; align-items: center; gap: 0.5rem; background: rgba(22, 18, 31, 0.6); border: 2px solid rgba(255, 255, 255, 0.25); border-radius: 2rem; padding: 0.2rem 0.3rem 0.2rem 0.3rem; max-width: 60vw; }
+#acctPfp { width: 2.2rem; height: 2.2rem; border-radius: 50%; object-fit: cover; background: #173a6e; }
+#acctName { font-size: 1.05rem; font-weight: 700; max-width: 11rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-left: 0.3rem; }
+#acctBtn { font-size: 0.85rem; padding: 0.25rem 0.7rem; border-radius: 1rem; }
+#fps { position: absolute; right: max(1rem, env(safe-area-inset-right, 0px)); top: calc(env(safe-area-inset-top, 0px) + 14.2rem); font-size: 0.9rem; font-weight: 700; color: #7dff6b; font-variant-numeric: tabular-nums; }
+.invite-row { display: flex; gap: 0.5rem; }
+.invite-row input { flex: 1; min-width: 0; font: 600 0.9rem var(--font); border: 2px solid var(--ink); border-radius: 0.5rem; padding: 0.35rem 0.5rem; background: #f0f8ff; color: var(--ink); }
+.invite-row .btn { font-size: 0.95rem; padding: 0.35rem 0.8rem; }
+#btnSettings { position: absolute; right: max(1rem, env(safe-area-inset-right, 0px)); top: calc(env(safe-area-inset-top, 0px) + 0.8rem); width: 3rem; height: 3rem; border-radius: 50%; font-size: 1.4rem; padding: 0; }
+
+.overlay:not([hidden]) { animation: fadeIn 0.2s ease; }
+.overlay:not([hidden]) .panel { animation: popIn 0.34s cubic-bezier(0.2, 1.5, 0.4, 1); }
+@keyframes fadeIn { from { opacity: 0; } }
+@keyframes popIn { from { opacity: 0; transform: scale(0.8) translateY(1rem); } }
+
+#offer { overflow: hidden; animation: offerFloat 3.2s ease-in-out infinite; }
+#offer::after { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.35) 50%, transparent 65%); transform: translateX(-120%); animation: shine 3.5s ease-in-out infinite; pointer-events: none; }
+@keyframes shine { 0%, 55% { transform: translateX(-120%); } 85%, 100% { transform: translateX(120%); } }
+@keyframes offerFloat { 0%, 100% { translate: 0 0; } 50% { translate: 0 -0.2rem; } }
+
+.stat.bump { animation: bump 0.45s cubic-bezier(0.34, 1.8, 0.5, 1); }
+@keyframes bump { 0% { transform: scale(1); } 35% { transform: scale(1.25); background: rgba(255, 208, 40, 0.5); } 100% { transform: scale(1); } }
+
+.bar .fill::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.18) 0 0.5rem, transparent 0.5rem 1rem); background-size: 2.3rem 100%; animation: stripes 1.2s linear infinite; }
+@keyframes stripes { to { background-position: 2.3rem 0; } }
+
+#stageTitle.show .n { animation: slideIn 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+#stageTitle.show .s { animation: slideIn 0.55s 0.12s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+@keyframes slideIn { from { opacity: 0; transform: translateX(-3rem) skewX(-12deg); } }
+
+@keyframes warnPulse { to { transform: translateX(-50%) scale(1.15); } }
+#chaseVignette { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.2s linear; background: radial-gradient(ellipse at center, rgba(40, 80, 255, 0) 45%, rgba(255, 20, 60, 0.5) 100%); animation: sirenTint 0.5s steps(1) infinite; }
+@keyframes sirenTint { 50% { background: radial-gradient(ellipse at center, rgba(255, 20, 60, 0) 45%, rgba(40, 90, 255, 0.5) 100%); } }
+#chaseWarn { position: absolute; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 5.4rem); transform: translateX(-50%); font-size: 1.7rem; font-weight: 700; color: #ff5a5a; white-space: nowrap; pointer-events: none; }
+#chaseWarn.danger { animation: warnPulse 0.45s ease-in-out infinite alternate; color: #ff2a3a; }
+@keyframes warnPulse { to { transform: translateX(-50%) scale(1.15); } }
+#flash { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(circle at 50% 55%, rgba(125, 255, 107, 0.45), rgba(125, 255, 107, 0) 60%); }
+#flash.show { animation: flash 0.7s ease-out; }
+#flash.gate { background: radial-gradient(circle at 50% 50%, rgba(111, 224, 255, 0.55), rgba(111, 224, 255, 0) 65%); }
+@keyframes flash { 0% { opacity: 1; } 100% { opacity: 0; } }
+
+#goalBanner { position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); display: grid; justify-items: center; pointer-events: none; }
+#goalBanner .goal { font-size: clamp(3rem, 12vw, 7rem); font-weight: 700; line-height: 1; color: var(--yellow); letter-spacing: 0.02em; }
+#goalBanner .sub { font-size: 2.2rem; font-weight: 700; color: var(--green); }
+#goalBanner .rays { position: absolute; left: 50%; top: 50%; width: 36rem; height: 36rem; margin: -18rem 0 0 -18rem; border-radius: 50%; background: repeating-conic-gradient(rgba(255, 208, 40, 0.28) 0 10deg, transparent 10deg 20deg); mask-image: radial-gradient(circle, #000 20%, transparent 68%); -webkit-mask-image: radial-gradient(circle, #000 20%, transparent 68%); animation: spin 6s linear infinite; z-index: -1; }
+#goalBanner.show .goal { animation: goalIn 0.7s cubic-bezier(0.2, 1.6, 0.4, 1) both, goalOut 0.4s 2.2s ease-in forwards; }
+#goalBanner.show .sub { animation: subIn 0.5s 0.25s cubic-bezier(0.2, 1.5, 0.4, 1) both, goalOut 0.4s 2.2s ease-in forwards; }
+#goalBanner.show .rays { animation: spin 6s linear infinite, raysIn 0.6s ease-out both, goalOut 0.4s 2.2s ease-in forwards; }
+@keyframes goalIn { from { opacity: 0; transform: scale(3) rotate(-12deg); } }
+@keyframes subIn { from { opacity: 0; transform: translateY(1.5rem); } }
+@keyframes raysIn { from { opacity: 0; transform: scale(0.3); } }
+@keyframes goalOut { to { opacity: 0; transform: scale(0.85); } }
+@keyframes spin { to { rotate: 360deg; } }
+
+.toast { animation: toast 2.4s cubic-bezier(0.2, 1.4, 0.4, 1) forwards; }
+@keyframes toast { 0% { opacity: 0; transform: translateY(1rem) scale(0.7); } 10% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-0.8rem); } }
+
+.play:not(:disabled) { animation: pulse 1.6s ease-in-out infinite; }
+@keyframes logoFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-0.5rem); } }
+@keyframes wiggle { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg) scale(1.05); } }
+@keyframes pulse { 0%, 100% { box-shadow: inset 0 -0.3rem 0 rgba(0, 0, 0, 0.22), 0 0.2rem 0 var(--ink), 0 0 0 0 rgba(125, 255, 107, 0.6); } 50% { box-shadow: inset 0 -0.3rem 0 rgba(0, 0, 0, 0.22), 0 0.2rem 0 var(--ink), 0 0 0 0.8rem rgba(125, 255, 107, 0); } }
+
+.settings { display: grid; gap: 1rem; }
+.set-row { display: grid; grid-template-columns: 9rem 1fr; align-items: center; gap: 0.8rem; font-size: 1.15rem; font-weight: 700; }
+.set-row input[type=range] { width: 100%; accent-color: var(--green); height: 1.4rem; }
+.seg { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.seg .btn { font-size: 1rem; padding: 0.35rem 0.8rem; }
+.set-note { margin: 0; font-size: 0.9rem; color: #bfd8f5; }
+@media (max-width: 480px) { .set-row { grid-template-columns: 1fr; } }
+
+@media (prefers-reduced-motion: reduce) {
+    .logo, .tag, .play, #offer, #offer::after, .bar .fill::after, #goalBanner .rays, .rbx::after, .g-rainbow { animation: none !important; }
+    .btn, .sq .ic { transition: none; }
+}
+
+/* ---------- +1 Motorcycle Evolution HUD (layout from the reference video) ---------- */
+.g-orange { background: linear-gradient(#ffb04a, #ff6a14); }
+.g-red { background: linear-gradient(#ff7a8a, #e8182c); }
+.g-rainbow { background: linear-gradient(100deg, #ff3c5a 0%, #ffb51c 22%, #ffe83a 38%, #46ec50 55%, #28c8ff 72%, #8a5aff 88%, #ff4ad8 100%); background-size: 200% 100%; animation: rainbow 4s linear infinite; }
+@keyframes rainbow { to { background-position: 200% 0; } }
+
+/* Left: four big buttons + a slimmer column of extras */
+/* Left column, drawn like the reference's Roblox buttons: square gradient tiles with a faint
+   stud-square pattern, a thick black outline, a chunky outlined icon and a bold outlined label */
+#leftCol { display: grid; grid-template-columns: none; gap: 0.32rem; top: 50%; --tile: 5.6rem; }
+.rbx { position: relative; width: var(--tile); height: var(--tile); padding: 0; border: 0.22rem solid var(--ink); border-radius: 0.75rem; cursor: pointer; overflow: visible;
+    background-image: var(--studs), var(--bg); background-size: 1.4rem 1.4rem, 100% 100%;
+    box-shadow: inset 0 0.22rem 0 rgba(255, 255, 255, 0.35), inset 0 -0.3rem 0 rgba(0, 0, 0, 0.18), 0 0.22rem 0 var(--ink), 0 0.45rem 0.6rem rgba(0, 0, 0, 0.25);
+    transition: transform 0.18s cubic-bezier(0.34, 1.8, 0.5, 1), filter 0.15s ease; }
+.rbx { --studs: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Crect x='3.5' y='3.5' width='17' height='17' rx='3' fill='none' stroke='rgba(0,0,0,0.10)' stroke-width='2.2'/%3E%3Cpath d='M4.5 15 V6 Q4.5 4.5 6 4.5 H15' fill='none' stroke='rgba(255,255,255,0.22)' stroke-width='1.6'/%3E%3C/svg%3E"); }
+.rbx .ic { position: absolute; left: 50%; top: 4%; width: 74%; height: 74%; transform: translateX(-50%); filter: drop-shadow(0 0.12rem 0 rgba(0, 0, 0, 0.3)); transition: transform 0.25s cubic-bezier(0.34, 1.8, 0.5, 1); }
+.rbx .lb { position: absolute; left: 0; right: 0; bottom: 6%; text-align: center; font-size: 1.3rem; font-weight: 700; line-height: 1; letter-spacing: -0.01em; color: #fff;
+    text-shadow: -0.12rem -0.12rem 0 var(--ink), 0.12rem -0.12rem 0 var(--ink), -0.12rem 0.12rem 0 var(--ink), 0.12rem 0.12rem 0 var(--ink), 0 0.14rem 0 var(--ink), 0 -0.14rem 0 var(--ink), 0.14rem 0 0 var(--ink), -0.14rem 0 0 var(--ink), 0 0.2rem 0 var(--ink); }
+.rb-shop { --bg: linear-gradient(#ffe84a 0%, #ffb51c 55%, #ff8a14 100%); }
+.rb-shop .lb { color: #fff23a; }
+.rb-rebirth { --bg: linear-gradient(#8ae8ff 0%, #3ab4ff 55%, #1a78e8 100%); }
+.rb-auras { --bg: linear-gradient(#d68aff 0%, #a84aff 55%, #7a24d8 100%); }
+.rb-free { --bg: conic-gradient(from 210deg at 50% 50%, #ff3c5a, #ff8a1e, #ffe83a, #46ec50, #28d8ff, #3a6aff, #a84aff, #ff4ad8, #ff3c5a); }
+.rb-free::before { content: ''; position: absolute; inset: 14%; border-radius: 0.5rem; background: radial-gradient(circle, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 72%); pointer-events: none; }
+/* A sheen sweeps across each tile now and then */
+.rbx::after { content: ''; position: absolute; inset: 0; border-radius: 0.55rem; background: linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, 0.45) 50%, transparent 62%) no-repeat; background-size: 250% 100%; background-position: 160% 0; animation: tileShine 6s ease-in-out infinite; pointer-events: none; }
+.rb-rebirth::after { animation-delay: 0.25s; } .rb-auras::after { animation-delay: 0.5s; } .rb-free::after { animation-delay: 0.75s; }
+@keyframes tileShine { 0%, 82% { background-position: 160% 0; } 100% { background-position: -60% 0; } }
+.rbx:hover { transform: translateY(-2px) scale(1.06); filter: brightness(1.07); }
+.rbx:hover .ic { transform: translateX(-50%) rotate(-8deg) scale(1.08); }
+.rbx:active { transform: translateY(2px) scale(0.93); transition-duration: 0.06s; }
+.rbx .badge { top: -0.45rem; right: -0.45rem; z-index: 1; }
+.rbx:focus-visible { outline: 3px solid var(--yellow); outline-offset: 3px; }
+/* Our extras: small tiles in the same style, top-right under the stats */
+#quickRow { position: absolute; right: max(1rem, env(safe-area-inset-right, 0px)); top: calc(env(safe-area-inset-top, 0px) + 7.2rem); display: flex; gap: 0.35rem; }
+.qb { position: relative; width: 2.9rem; height: 2.9rem; padding: 0.3rem; border: 0.18rem solid var(--ink); border-radius: 0.6rem; cursor: pointer; background: linear-gradient(#ffffff, #d8e2f2);
+    box-shadow: inset 0 -0.2rem 0 rgba(0, 0, 0, 0.12), 0 0.18rem 0 var(--ink); transition: transform 0.18s cubic-bezier(0.34, 1.8, 0.5, 1); }
+.qb svg { width: 100%; height: 100%; display: block; }
+.qb:hover { transform: translateY(-2px) scale(1.08); }
+.qb:active { transform: translateY(1px) scale(0.92); }
+.qb .badge { top: -0.45rem; right: -0.45rem; }
+#btnAuto.on { background: linear-gradient(#9cff8a, #28c43c); outline: 3px solid var(--white); }
+
+
+/* Top right: online + rebirths under the settings button */
+#stats { top: calc(env(safe-area-inset-top, 0px) + 4.4rem); }
+#stats .stat { font-size: 1.15rem; }
+#stats .stat .ic { font-size: 1.15rem; }
+
+/* Bottom left: trophy + Wins, Friend Boost */
+#winsBox { position: absolute; left: max(1rem, env(safe-area-inset-left, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 0.8rem); display: grid; gap: 0.15rem; }
+#winsBox .wins { background: none; border: none; padding: 0; gap: 0.5rem; font-size: 2.6rem; }
+#winsBox .cup { font-size: 2.6rem; filter: drop-shadow(0 0.15rem 0 rgba(0, 0, 0, 0.4)); }
+#winsBox .fboost { font-size: 1.05rem; font-weight: 700; color: #ffffff; }
+#winsBox .fboost.on { color: var(--green); }
+
+/* Right: Custom Speed box, rainbow 2X Speed and the ONLY price */
+#rightCol { width: 9.6rem; gap: 0.4rem; top: 38%; }
+#customSpeed { background: transparent; border: none; padding: 0; gap: 0.1rem; }
+#customSpeed label { font-size: 1.15rem; }
+#customSpeed .row { position: relative; background: linear-gradient(#ffffff, #dfe8f4); border: 3px solid var(--ink); border-radius: 0.8rem; padding: 0.1rem 0.3rem; box-shadow: 0 0.2rem 0 var(--ink); }
+#customSpeed .shoe { font-size: 1.6rem; transform: rotate(-20deg); }
+#speedInput { border: none; background: transparent; color: #28a83c; font-size: 1.7rem; -moz-appearance: textfield; text-shadow: 0 1px 0 #fff; }
+#speedInput::-webkit-outer-spin-button, #speedInput::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+#customSpeed small { font-size: 1rem; color: #fff; text-align: right; margin-top: -0.2rem; }
+#btn2x { font-size: 1.6rem; padding: 0.45rem 0.4rem; border-radius: 0.9rem; margin-top: 0.4rem; }
+#rightCol .only { text-align: center; font-size: 1.15rem; font-weight: 700; margin-top: -0.15rem; }
+#offer { position: relative; left: auto; top: auto; transform: none; flex-direction: column; gap: 0.25rem; padding: 0.45rem 0.5rem; margin-top: 0.4rem; text-align: center; background: linear-gradient(#ff8a2a, #d8401c); }
+#offer .ic { font-size: 2rem; line-height: 1; }
+#offer .tt { color: #fff; font-size: 1rem; }
+#offer .sub { color: #fff3c8; }
+#offer .yn { display: flex; gap: 0.3rem; justify-content: center; }
+#offer .yes, #offer .no { font-size: 0.9rem; padding: 0.2rem 0.6rem; }
+
+/* Bottom centre: Speed line, Level bar and +Speed buttons */
+#speedLine { display: flex; align-items: baseline; justify-content: center; gap: 0.8rem; width: 100%; font-size: 2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+#speedLine .rb { font-size: 1.25rem; color: var(--green); }
+body.touch #speedLine { font-size: 1.4rem; }
+body.touch #speedLine .rb { font-size: 0.95rem; }
+#bottom { width: min(32rem, 64vw); gap: 0.4rem; pointer-events: none; }
+#bottom #speedBuys { pointer-events: auto; }
+#levelBar { display: flex; height: 2.6rem; background: #ffffff; border-radius: 0.8rem; overflow: hidden; }
+#levelBar .lvl { flex: none; display: grid; place-items: center; padding: 0 0.9rem; font-size: 1.5rem; background: linear-gradient(#3a8cff, #1a4ad8); border-right: 3px solid var(--ink); white-space: nowrap; }
+#levelBar .track { position: relative; flex: 1; background: linear-gradient(#ffffff, #e2e8f2); }
+#levelBar .fill { background: linear-gradient(#4aa8ff, #1f6fe8); }
+#levelBar #xpTxt { right: 0.8rem; font-size: 1.45rem; }
+#stamBar { width: 50%; height: 0.9rem; }
+#stamBar #stamTxt { display: none; }
+#speedBuys { display: flex; gap: 0.5rem; width: 100%; }
+#speedBuys .btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.25rem; font-size: 1.5rem; padding: 0.3rem 0.4rem; border-radius: 0.8rem; white-space: nowrap; }
+#speedBuys .btn:last-child { flex: 1.5; }
+#speedBuys .sh { font-size: 1.5rem; transform: rotate(-20deg); }
+
+/* Level up: "Level Up! (0->1)" in yellow, "New walking speed: 16->17" under it */
+#levelBanner { top: 10%; display: grid; justify-items: center; gap: 0.1rem; font-size: inherit; opacity: 0; background: linear-gradient(90deg, transparent, rgba(22, 18, 31, 0.55) 20%, rgba(22, 18, 31, 0.55) 80%, transparent); padding: 0.3rem 4rem; }
+#levelBanner .a { font-size: 2rem; font-weight: 700; color: var(--yellow); }
+#levelBanner .b { font-size: 1.6rem; font-weight: 700; color: #fff; }
+
+/* Cards: Revive, offline earnings */
+.card { position: relative; width: min(24rem, 100%); display: grid; gap: 0.5rem; justify-items: center; text-align: center; padding: 1.1rem 1.2rem 1.2rem; background: linear-gradient(#ffffff, #e4ecf6); color: var(--ink); border: 4px solid var(--ink); border-radius: 1.2rem; box-shadow: 0 0.4rem 0 var(--ink); }
+.card h2 { margin: 0; font-size: 2.4rem; color: #fff; }
+.card .x { position: absolute; right: -0.9rem; top: -0.9rem; width: 3rem; height: 3rem; padding: 0; font-size: 1.4rem; border-radius: 0.8rem; }
+.card .caught { font-size: 1.3rem; font-weight: 700; color: #ff3c50; }
+.card .reached { font-size: 1.15rem; font-weight: 700; }
+.card .keep { font-size: 1rem; font-weight: 600; color: #3a3a5a; }
+.card .rev-row { display: flex; align-items: center; gap: 0.6rem; }
+.card .rev-row .btn { font-size: 1.9rem; padding: 0.35rem 1.4rem; }
+.card .only { font-size: 1.2rem; font-weight: 700; color: #fff; background: linear-gradient(#46ec50, #1aa83a); border: 3px solid var(--ink); border-radius: 0.7rem; padding: 0.2rem 0.5rem; }
+.card #reviveTimer { color: #6a6a8a; font-size: 0.95rem; }
+.card .big-ic { font-size: 3.4rem; }
+.card .gain { font-size: 2.4rem; font-weight: 700; color: var(--green); }
+.card > .btn { font-size: 1.5rem; padding: 0.4rem 1.6rem; }
+.overlay:not([hidden]) .card, .overlay:not([hidden]) .daily-pop { animation: popIn 0.34s cubic-bezier(0.2, 1.5, 0.4, 1); }
+
+/* Race card and start countdown */
+.race-card { position: absolute; left: 50%; top: 56%; transform: translate(-50%, -50%); width: min(17rem, 70vw); gap: 0.5rem; padding: 0.9rem 1rem 0.9rem; animation: popIn 0.34s cubic-bezier(0.2, 1.5, 0.4, 1); }
+.race-card .rt { font-size: 1.35rem; font-weight: 700; color: #2a2a3a; line-height: 1.15; padding: 0 1.2rem; }
+.race-card #raceJoin { font-size: 1.4rem; padding: 0.25rem 2.2rem; }
+.race-card #raceJoin:disabled { filter: grayscale(0.4); }
+.race-card .x { width: 2.4rem; height: 2.4rem; right: -0.7rem; top: -0.7rem; font-size: 1.1rem; }
+#raceCount { position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); font-size: 9rem; font-weight: 700; color: var(--yellow); pointer-events: none; }
+#raceCount.go { color: var(--green); }
+#raceCount.show { animation: goalIn 0.5s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+
+/* Daily Reward */
+.daily-pop { position: relative; width: min(46rem, 100%); display: grid; justify-items: center; gap: 0.7rem; padding: 0.6rem 0.4rem 0.8rem; }
+.daily-pop h2 { margin: 0; font-size: 3.2rem; }
+.daily-pop .x { position: absolute; right: 0; top: 0.2rem; width: 3rem; height: 3rem; padding: 0; font-size: 1.4rem; border-radius: 0.8rem; }
+.daily-pop .cards { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem; width: 100%; }
+.dcard { position: relative; aspect-ratio: 0.85; display: grid; place-items: center; align-content: center; gap: 0.1rem; background: linear-gradient(#ffffff, #dfe6f2); border: 3px solid var(--ink); border-radius: 0.8rem; box-shadow: 0 0.25rem 0 var(--ink); }
+.dcard .di { font-size: 2.6rem; line-height: 1; filter: drop-shadow(0 0.12rem 0 rgba(0, 0, 0, 0.3)); }
+.dcard .dr { font-size: 1.3rem; font-weight: 700; }
+.dcard.today { background: linear-gradient(#ffffff, #d8ffd0); box-shadow: 0 0 0 4px #46ec50, 0 0.25rem 0 var(--ink); transform: scale(1.06); }
+.dcard.done { filter: grayscale(0.6) brightness(0.85); }
+.dcard.done::after { content: "✔"; position: absolute; right: 0.3rem; top: 0.1rem; font-size: 1.3rem; color: #28a83c; text-shadow: none; }
+.daily-pop .track { position: relative; width: 92%; display: flex; justify-content: space-between; align-items: center; height: 2.6rem; }
+.daily-pop .track::before { content: ""; position: absolute; left: 0.6rem; right: 0.6rem; top: 0.55rem; height: 0.35rem; background: rgba(255, 255, 255, 0.45); border-radius: 1rem; }
+.daily-pop .dot { position: relative; display: grid; justify-items: center; gap: 0.25rem; font-size: 0.95rem; font-weight: 700; color: #e4ecff; }
+.daily-pop .dot i { width: 1.3rem; height: 1.3rem; border-radius: 50%; background: #9aa6c8; border: 3px solid var(--ink); }
+.daily-pop .dot.on i { background: #46ec50; }
+.daily-pop .dot.on { color: #fff; }
+.daily-pop .claim { font-size: 1.9rem; padding: 0.45rem 2.4rem; }
+.daily-pop .claim:disabled { filter: grayscale(0.8) brightness(0.85); }
+.daily-pop .left { font-size: 1.05rem; font-weight: 600; }
+#daily { background: rgba(4, 16, 36, 0.6); }
+
+/* Phones and touch */
+@media (max-width: 700px), (max-height: 460px) {
+    #leftCol { --tile: 4.3rem; }
+    .rbx .lb { font-size: 1rem; }
+    .qb { width: 2.4rem; height: 2.4rem; }
+    #rightCol { width: 7.6rem; }
+    #btn2x { font-size: 1.25rem; }
+    .dcard .di { font-size: 1.7rem; }
+    .dcard .dr { font-size: 0.85rem; }
+    .daily-pop h2 { font-size: 2.2rem; }
+}
+/* Touch: the joystick owns the bottom-left, so Wins sit on the right above JUMP / SPRINT */
+body.touch #winsBox { left: auto; right: max(1rem, env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 8.6rem); justify-items: end; }
+body.touch #winsBox .wins, body.touch #winsBox .cup { font-size: 1.8rem; }
+body.touch #winsBox .fboost { font-size: 0.85rem; }
+body.touch #speedBuys .btn { font-size: 1.1rem; }
+@media (max-height: 460px) {
+    #leftCol { top: 50%; --tile: 3.7rem; gap: 0.25rem; }
+    .rbx .lb { font-size: 0.85rem; }
+    #offer { display: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+    <canvas id="view" tabindex="0" aria-label="Game view"></canvas>
+    <canvas id="speedLines" aria-hidden="true"></canvas>
+
+    <div id="hud" hidden>
+
+
+        <div id="stats" class="passive">
+            <div class="stat"><span class="ic">👥</span><b class="o1" id="onlineVal">1</b></div>
+            <div class="stat" id="rebirthStat" hidden><span class="ic">🔄</span><b class="o1" id="rebirthVal">0</b></div>
+        </div>
+
+        <!-- Bottom left: trophy + Wins, Friend Boost underneath -->
+        <div id="winsBox" class="passive">
+            <div class="wins stat"><span class="cup" aria-hidden="true">🏆</span><b class="o" id="winsVal">0</b></div>
+            <div class="fboost o1" id="friendBoost">Friend Boost +0% <span aria-hidden="true">🏍️</span></div>
+        </div>
+
+        <button class="btn g-grey o1" id="btnSettings" aria-label="Settings">⚙️</button>
+        <div id="acct" hidden>
+            <img id="acctPfp" alt="" hidden>
+            <span class="o1" id="acctName">Guest</span>
+            <button class="btn g-blue o1" id="acctBtn">Log in</button>
+        </div>
+        <div id="fps" class="o1 passive" hidden>60 FPS</div>
+        <div id="tips" class="o1" hidden></div>
+        <div id="flash" class="passive" aria-hidden="true"></div>
+        <div id="chaseVignette" class="passive" aria-hidden="true"></div>
+        <div id="chaseWarn" class="o passive" role="status" hidden></div>
+        <div id="goalBanner" class="passive" hidden><div class="rays"></div><div class="goal o">STAGE CLEAR!</div><div class="sub o" id="goalSub">+1 Wins</div></div>
+
+        <!-- Left: the reference's four big buttons, our extras in a slimmer column beside them -->
+        <!-- Left: the reference's four buttons, drawn like the Roblox ones: gradient tile with a
+             stud pattern, thick black outline, chunky outlined icon, bold outlined label -->
+        <div id="leftCol">
+            <button class="rbx rb-shop" id="btnStore" aria-label="Shop">
+                <svg class="ic" viewBox="0 0 100 100" aria-hidden="true">
+                    <path d="M30 44 L37 13 L69 17 L66 46" fill="none" stroke="#16121f" stroke-width="13" stroke-linejoin="round" stroke-linecap="round"/>
+                    <path d="M30 44 L37 13 L69 17 L66 46" fill="none" stroke="#a9c2dc" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>
+                    <path d="M33 40 L38 18" stroke="#e4f0ff" stroke-width="2.5" stroke-linecap="round"/>
+                    <path d="M14 46 L86 46 L76 88 L24 88 Z" fill="#ff8a1e" stroke="#16121f" stroke-width="5" stroke-linejoin="round"/>
+                    <path d="M58 46 L86 46 L76 88 L54 88 Z" fill="#f06a14"/>
+                    <path d="M9 37 L91 37 L88 50 L12 50 Z" fill="#ffb53a" stroke="#16121f" stroke-width="5" stroke-linejoin="round"/>
+                    <path d="M18 40 L82 40 L81 45 L19 45 Z" fill="#e85a10"/>
+                    <path d="M14 46 L86 46 L76 88 L24 88 Z" fill="none" stroke="#16121f" stroke-width="5" stroke-linejoin="round"/>
+                    <path d="M66 54 L76 57 L67 60 Z" fill="#fff"/>
+                </svg>
+                <span class="lb o">Shop</span>
+            </button>
+            <button class="rbx rb-rebirth" id="btnRebirth" aria-label="Rebirth">
+                <svg class="ic" viewBox="0 0 100 100" aria-hidden="true">
+                    <path d="M84 50 C84 76 58 90 34 80 L30 92 L10 62 L44 56 L39 68 C55 74 68 64 69 50 Z" fill="#e2f4ff" stroke="#16121f" stroke-width="5" stroke-linejoin="round"/>
+                    <path d="M69 50 C68 64 55 74 39 68 L41 63 C53 66 62 60 64 50 Z" fill="#9ccfee"/>
+                    <path d="M16 52 C16 26 44 10 68 22 L72 10 L92 40 L57 46 L62 34 C46 28 32 38 31 52 Z" fill="#e8304a" stroke="#16121f" stroke-width="5" stroke-linejoin="round"/>
+                    <path d="M22 46 C24 28 42 18 60 22 L58 27 C42 24 30 32 28 46 Z" fill="#ff6a80"/>
+                    <path d="M24 44 L28 34 L30 42 Z" fill="#fff"/>
+                </svg>
+                <span class="lb o">Rebirth</span>
+                <span class="badge" id="rebirthBadge" hidden>!</span>
+            </button>
+            <button class="rbx rb-auras" id="btnAuras" aria-label="Auras">
+                <svg class="ic" viewBox="0 0 100 100" aria-hidden="true">
+                    <path d="M50 8 L61.5 36 L92 38.5 L68.5 58 L76 88 L50 72 L24 88 L31.5 58 L8 38.5 L38.5 36 Z" fill="#ffb31a" stroke="#16121f" stroke-width="5" stroke-linejoin="round"/>
+                    <path d="M50 8 L61.5 36 L50 52 Z M8 38.5 L38.5 36 L50 52 Z M24 88 L31.5 58 L50 52 Z" fill="#ffd45a"/>
+                    <path d="M92 38.5 L68.5 58 L50 52 Z M76 88 L50 72 L50 52 Z" fill="#f08c10"/>
+                    <path d="M50 8 L61.5 36 L92 38.5 L68.5 58 L76 88 L50 72 L24 88 L31.5 58 L8 38.5 L38.5 36 Z" fill="none" stroke="#16121f" stroke-width="5" stroke-linejoin="round"/>
+                    <path d="M42 30 L46 22 L46 32 Z" fill="#fff"/>
+                </svg>
+                <span class="lb o">AURAS</span>
+            </button>
+            <button class="rbx rb-free" id="btnFree" aria-label="Free rewards">
+                <svg class="ic" viewBox="0 0 100 100" aria-hidden="true">
+                    <path d="M12 46 L88 46 L88 86 Q88 90 84 90 L16 90 Q12 90 12 86 Z" fill="#ffa21c" stroke="#16121f" stroke-width="5" stroke-linejoin="round"/>
+                    <path d="M14 18 Q14 12 20 12 L80 12 Q86 12 86 18 L86 46 L14 46 Z" fill="#ffa21c" stroke="#16121f" stroke-width="5" stroke-linejoin="round"/>
+                    <rect x="23" y="19" width="54" height="22" rx="2" fill="#e83a4a"/>
+                    <rect x="20" y="56" width="16" height="30" fill="#e83a4a"/><rect x="64" y="56" width="16" height="30" fill="#e83a4a"/>
+                    <path d="M41 46 L59 46 L59 62 Q50 68 41 62 Z" fill="#ffc44a" stroke="#16121f" stroke-width="4" stroke-linejoin="round"/>
+                    <circle cx="50" cy="53" r="3.5" fill="#a84a10"/><path d="M48 55 L52 55 L53 61 L47 61 Z" fill="#a84a10"/>
+                    <path d="M20 16 L28 16 L20 24 Z" fill="#fff"/>
+                </svg>
+                <span class="lb o" id="freeLb">FREE</span>
+                <span class="badge" id="freeBadge" hidden>!</span>
+            </button>
+        </div>
+
+        <!-- Our extras (not in the reference), kept out of the left column: small tiles top-right -->
+        <div id="quickRow">
+            <button class="qb rb-daily" id="btnDaily" aria-label="Daily reward" title="Daily Reward">
+                <svg viewBox="0 0 100 100" aria-hidden="true"><rect x="14" y="20" width="72" height="66" rx="8" fill="#fff" stroke="#16121f" stroke-width="6"/><path d="M14 28 Q14 20 22 20 L78 20 Q86 20 86 28 L86 40 L14 40 Z" fill="#e8304a" stroke="#16121f" stroke-width="6" stroke-linejoin="round"/><path d="M32 12 L32 28 M68 12 L68 28" stroke="#16121f" stroke-width="8" stroke-linecap="round"/><path d="M34 62 L45 72 L68 50" fill="none" stroke="#28c43c" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span class="badge" id="dailyBadge" hidden>!</span>
+            </button>
+            <button class="qb rb-friends" id="btnFriends" aria-label="Friends" title="Friends">
+                <svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="64" cy="34" r="14" fill="#ffb8d8" stroke="#16121f" stroke-width="6"/><path d="M42 84 Q42 56 64 56 Q86 56 86 84 Z" fill="#ff6ab0" stroke="#16121f" stroke-width="6" stroke-linejoin="round"/><circle cx="36" cy="40" r="15" fill="#fff" stroke="#16121f" stroke-width="6"/><path d="M12 90 Q12 62 36 62 Q60 62 60 90 Z" fill="#3a8cff" stroke="#16121f" stroke-width="6" stroke-linejoin="round"/></svg>
+            </button>
+            <button class="qb rb-avatar" id="btnWardrobe" aria-label="Avatar" title="Avatar">
+                <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M36 14 Q50 26 64 14 L90 28 L80 48 L72 44 L72 88 L28 88 L28 44 L20 48 L10 28 Z" fill="#46ec50" stroke="#16121f" stroke-width="6" stroke-linejoin="round"/><path d="M36 14 Q50 26 64 14" fill="none" stroke="#16121f" stroke-width="6"/><path d="M30 60 L70 60" stroke="#22a83a" stroke-width="6"/></svg>
+            </button>
+            <button class="qb rb-auto" id="btnAuto" aria-label="Auto Train" title="Auto Train: run on your best treadmill while AFK">
+                <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M14 56 Q14 44 26 44 L52 44 L60 30 L74 34 L68 52 Q82 54 86 64 Q88 74 76 74 L22 74 Q14 74 14 66 Z" fill="#3a8cff" stroke="#16121f" stroke-width="6" stroke-linejoin="round"/><path d="M14 64 L86 64" stroke="#fff" stroke-width="6"/><path d="M6 36 L26 36 M10 26 L30 26" stroke="#fff" stroke-width="6" stroke-linecap="round"/><path d="M14 74 L86 74" stroke="#16121f" stroke-width="6" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+
+        <!-- Right: Custom Speed box and the rainbow 2X Speed pass -->
+        <div id="rightCol">
+            <div id="customSpeed">
+                <label class="o1" for="speedInput">Custom Speed</label>
+                <div class="row"><span class="shoe" aria-hidden="true">👟</span><input id="speedInput" type="number" inputmode="numeric" min="14" value="14"></div>
+                <small class="o1" id="maxSpeedTxt">MAX: 14</small>
+            </div>
+            <button class="btn g-rainbow" id="btn2x"><span class="o">x2 Speed ⚡</span></button>
+            <div class="only o1" id="price2x">ONLY <i class="bx" aria-hidden="true"></i>9</div>
+            <div id="offer">
+                <span class="ic" id="offerIc">🎁</span>
+                <div class="tx"><span class="tt o1" id="offerTitle">OP STARTER PACK</span><span class="sub" id="offerSub">⏰ 15:00 · ONLY <i class="bx" aria-hidden="true"></i>19</span></div>
+                <div class="yn"><button class="btn g-green yes o1" id="offerYes">YES</button><button class="btn g-red no o1" id="offerNo">✕</button></div>
+            </div>
+        </div>
+
+        <div id="boost" class="o passive" hidden></div>
+
+        <!-- Bottom centre: "N Speed  x1(Rebirth)", the Level bar, then the +100K / +1M / +10M SPEED buttons -->
+        <div id="bottom">
+            <div id="sprintHint" class="o passive">HOLD SHIFT TO SPRINT!</div>
+            <div class="bar passive" id="stamBar"><div class="fill" id="stamFill"></div><span class="o1" id="stamTxt">💨 12/12</span></div>
+            <div id="speedLine" class="passive"><span class="o"><b id="speedVal">0</b> Speed</span><span class="rb o1" id="rebMult">x1(Rebirth)</span></div>
+            <div class="bar passive" id="levelBar"><div class="lvl o" id="levelTxt">Level 1</div><div class="track"><div class="fill" id="xpFill"></div><span class="o" id="xpTxt">0/57.5</span></div></div>
+            <div id="speedBuys">
+                <button class="btn g-yellow o" data-product="Speed100K"><span class="sh" aria-hidden="true">👟</span>+100K</button>
+                <button class="btn g-yellow o" data-product="Speed1M"><span class="sh" aria-hidden="true">👟</span>+1M</button>
+                <button class="btn g-rainbow o" data-product="Speed10M"><span class="sh" aria-hidden="true">👟</span>+10M SPEED</button>
+            </div>
+        </div>
+
+        <div id="stageTitle" style="opacity:0"><div class="n" id="stageName">Stage 1</div><div class="s o" id="stageSub">ESCAPE</div></div>
+        <div id="levelBanner"><div class="a o" id="levelA">Level Up! (1 -&gt; 2)</div><div class="b o" id="levelB">New Speed: 14 -&gt; 16</div></div>
+        <!-- "Race starting in 20s!" card from the reference -->
+        <div id="racePop" class="card race-card" hidden>
+            <button class="btn g-red x o" id="raceClose" aria-label="Close">✕</button>
+            <div class="rt" id="raceText">Race starting in 20s!</div>
+            <button class="btn g-green o" id="raceJoin">JOIN</button>
+        </div>
+        <div id="raceCount" class="o passive" hidden>3</div>
+        <div id="toasts"></div>
+        <button id="promptBtn" hidden><kbd>E</kbd><span id="promptTxt"></span></button>
+
+        <div id="touch" hidden>
+            <div id="stick"><div id="knob"></div></div>
+            <button class="btn g-blue o1" id="sprintBtn">SPRINT</button>
+            <button class="btn g-green o1" id="jumpBtn" style="font-size:1.4rem">JUMP</button>
+        </div>
+    </div>
+
+    <div id="modal" class="overlay" hidden>
+        <div class="panel" role="dialog" aria-labelledby="modalTitle">
+            <header><h2 class="o" id="modalTitle">Store</h2><button class="btn g-red x o1" id="modalClose" aria-label="Close">✕</button></header>
+            <div class="body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <div id="buy" class="overlay" hidden>
+        <div class="panel" role="dialog" aria-labelledby="buyTitle">
+            <header><h2 class="o" id="buyTitle">Buy with Bux</h2></header>
+            <div class="buy-body">
+                <div class="item o1" id="buyItem">2x Speed</div>
+                <div class="cost o1" id="buyCost"><i class="bx" aria-hidden="true"></i>3 Bux</div>
+                <p class="note">Paid with Bux, the Bloxity currency. Free while this demo runs without a Bux catalog.</p>
+                <div class="acts"><button class="btn g-green o1" id="buyOk">Buy</button><button class="btn g-grey o1" id="buyCancel">Cancel</button></div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- "Revive — You were caught! You reached Stage N!" card from the reference -->
+    <div id="revive" class="overlay" hidden>
+        <div class="card revive-card" role="dialog" aria-labelledby="reviveTitle">
+            <button class="btn g-red x o" id="reviveNo" aria-label="Back to lobby">✕</button>
+            <h2 class="o" id="reviveTitle">Revive</h2>
+            <div class="caught o1">💥 You crashed!</div>
+            <div class="reached" id="reviveReached">You reached Stage 1!</div>
+            <div class="keep">Revive now and keep your progress!</div>
+            <div class="rev-row"><button class="btn g-green o" id="reviveYes">REVIVE</button><span class="only o1" id="revivePrice">ONLY <i class="bx" aria-hidden="true"></i>9</span></div>
+            <div id="reviveTimer">Back to the lobby in 10s</div>
+        </div>
+    </div>
+
+    <!-- Daily Reward: seven cards, a day track and the claim button, like the reference -->
+    <div id="daily" class="overlay" hidden>
+        <div class="daily-pop" role="dialog" aria-labelledby="dailyTitle">
+            <button class="btn g-red x o" id="dailyClose" aria-label="Close">✕</button>
+            <h2 class="o" id="dailyTitle">Daily Reward</h2>
+            <div class="cards" id="dailyCards"></div>
+            <div class="track" id="dailyTrack"></div>
+            <button class="btn g-green o claim" id="dailyClaim">CLAIM REWARD</button>
+            <div class="left o1" id="dailyLeft">Time left to claim: 23:59:59</div>
+        </div>
+    </div>
+
+    <!-- Treadmill earnings while offline -->
+    <div id="offlinePop" class="overlay" hidden>
+        <div class="card" role="dialog" aria-labelledby="offlineTitle2">
+            <h2 class="o" id="offlineTitle2">Welcome back!</h2>
+            <div class="big-ic" aria-hidden="true">🏍️💨</div>
+            <div class="keep" id="offlineText">Your treadmill kept running while you were away.</div>
+            <div class="gain o" id="offlineGain">+0 Speed</div>
+            <button class="btn g-green o" id="offlineOk">Awesome!</button>
+        </div>
+    </div>
+
+    <div id="offline" class="overlay" hidden>
+        <div class="panel" role="alertdialog" aria-labelledby="offlineTitle">
+            <header style="background:linear-gradient(#ff5a5a,#b3122a)"><h2 class="o" id="offlineTitle">Disconnected</h2></header>
+            <div class="buy-body">
+                <div class="item o1">Lost connection to the server</div>
+                <p class="note">Your progress is saved on the server. Rejoin to keep playing.</p>
+                <div class="acts"><button class="btn g-green o1" id="reconnectBtn">Rejoin</button></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="start">
+        <div class="loader">
+            <div class="loader-ball" aria-hidden="true">🏍️</div>
+            <div id="loading" class="o1">Loading…</div>
+            <div class="err o1" id="connectErr" hidden></div>
+            <button class="btn g-green o" id="playBtn" hidden>Try again</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://sdk.bloxity.io/v1/legion-sdk.min.js"></script>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

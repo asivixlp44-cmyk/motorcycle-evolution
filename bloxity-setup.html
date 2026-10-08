@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Motorcycle Evolution Setup</title>
+<style>
+:root { --bg: #f4f6fb; --card: #ffffff; --ink: #1b1d2a; --muted: #5d6478; --line: #e1e5ef; --accent: #2a7cff; --ok: #1e9e4a; --chip: #eef3ff; --off: #9aa0b0; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #12141c; --card: #1b1e29; --ink: #eef0f7; --muted: #a2a9bd; --line: #2c3142; --accent: #5aa0ff; --ok: #4cd37c; --chip: #23293a; --off: #6c7386; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 1060px; margin: 0 auto; padding: 28px 16px 60px; }
+h1 { font-size: 28px; margin: 0 0 4px; }
+h2 { font-size: 19px; margin: 34px 0 10px; }
+h2 small { font-size: 13px; color: var(--muted); font-weight: 500; }
+p.sub { color: var(--muted); margin: 0 0 8px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 6px 16px; }
+.field { display: grid; grid-template-columns: 210px 1fr auto; gap: 12px; align-items: start; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.field:last-child { border-bottom: none; }
+.label { color: var(--muted); font-weight: 600; padding-top: 2px; }
+.val { white-space: pre-wrap; word-break: break-word; }
+.val.empty { color: var(--off); font-style: italic; }
+.mono, code { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 13.5px; }
+button.copy { border: 1px solid var(--line); background: var(--chip); color: var(--ink); border-radius: 8px; padding: 4px 10px; font: 600 13px system-ui, sans-serif; cursor: pointer; }
+button.copy:hover { border-color: var(--accent); }
+button.copy.done { color: var(--ok); border-color: var(--ok); }
+button.copy.sm { padding: 0 6px; margin-left: 6px; font-size: 12px; vertical-align: 1px; }
+.tablewrap { overflow-x: auto; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
+table { border-collapse: collapse; width: 100%; min-width: 640px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-size: 13px; font-weight: 600; background: var(--chip); }
+tr:last-child td { border-bottom: none; }
+td.on { color: var(--ok); font-weight: 700; white-space: nowrap; }
+td.off { color: var(--off); white-space: nowrap; }
+td.why { color: var(--muted); }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 0; }
+.tag { border: 1px solid var(--line); background: var(--chip); border-radius: 7px; padding: 2px 9px; font-size: 13px; font-weight: 600; }
+.covers { display: grid; grid-template-columns: 1fr 260px; gap: 16px; padding: 12px 0; align-items: start; }
+.shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; padding: 12px 0; }
+img { width: 100%; border-radius: 10px; border: 1px solid var(--line); display: block; }
+.file { color: var(--muted); font-size: 12px; margin-top: 4px; word-break: break-all; }
+table.iapt { min-width: 900px; }
+table.iapt td { vertical-align: middle; }
+table.iapt td.n { text-align: center; color: var(--muted); font-weight: 700; width: 40px; }
+table.iapt td.n input { width: 18px; height: 18px; accent-color: var(--ok); }
+.cc { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+tr.iap.isdone td { opacity: 0.45; }
+tr.iap.isdone td.n:last-child { opacity: 1; }
+.iap { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; }
+.iap.isdone { opacity: 0.5; border-color: var(--ok); }
+.iap-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+.iap-head .num { width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 13px; }
+.iap-head .kind { color: var(--muted); font-size: 13px; }
+.done-box { margin-left: auto; font-weight: 600; font-size: 14px; cursor: pointer; display: flex; gap: 6px; align-items: center; }
+.done-box input { width: 18px; height: 18px; accent-color: var(--ok); }
+.iap-row { display: grid; grid-template-columns: 110px 1fr auto; gap: 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); }
+.iap-row .k { color: var(--muted); font-weight: 600; font-size: 13px; }
+.iap-row .v { word-break: break-word; }
+button.copy.big { padding: 6px 16px; font-size: 14px; background: var(--accent); color: #fff; border-color: var(--accent); min-width: 78px; }
+button.copy.big.done { background: var(--ok); border-color: var(--ok); color: #fff; }
+.prog { font-weight: 700; color: var(--ok); }
+pre { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; overflow-x: auto; margin: 0; }
+.note { background: var(--chip); border-radius: 10px; padding: 10px 14px; margin-top: 10px; }
+ol.steps { padding-left: 20px; margin: 0; } ol.steps li { margin: 6px 0; }
+@media (max-width: 640px) { .field { grid-template-columns: 1fr auto; } .label { grid-column: 1 / -1; } .covers { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+    <h1>+1 Motorcycle Evolution: Create New Game</h1>
+    <p class="sub">Every field of the bloxity.io Manage Games → <b>Create New Game</b> form, top to bottom. Click Copy to copy a value. Prices and SKUs are read from <code>shared/config.js</code>, so they match the game.</p>
+
+    <h2>Basic Info</h2>
+    <div class="card">
+        
+    <div class="field">
+        <div class="label">Slug *</div>
+        <div class="val mono">motorcycle-evolution</div>
+        <button class="copy" data-v="motorcycle-evolution">Copy</button>
+    </div>
+        
+    <div class="field">
+        <div class="label">Name *</div>
+        <div class="val">+1 Motorcycle Evolution</div>
+        <button class="copy" data-v="+1 Motorcycle Evolution">Copy</button>
+    </div>
+        
+    <div class="field">
+        <div class="label">SEO Name (optional)</div>
+        <div class="val">+1 Motorcycle Evolution - Ride, Level Up &amp; Escape the Police | Free 3D Bike Game</div>
+        <button class="copy" data-v="+1 Motorcycle Evolution - Ride, Level Up &amp; Escape the Police | Free 3D Bike Game">Copy</button>
+    </div>
+        <div class="field"><div class="label">Developer</div><div class="val">☑ Show developer (your choice: off shows “User Created Game”)</div><span></span></div>
+        <div class="field"><div class="label">Game Source *</div><div class="val">Choose <b>External URL</b> (not Upload ZIP): the game is already hosted by Legion.</div><span></span></div>
+        
+    <div class="field">
+        <div class="label">Game URL</div>
+        <div class="val mono">https://motorcycle-evolution.play.bloxity.io/</div>
+        <button class="copy" data-v="https://motorcycle-evolution.play.bloxity.io/">Copy</button>
+    </div>
+        
+    <div class="field">
+        <div class="label">Raw URL (optional)</div>
+        <div class="val mono">https://motorcycle-evolution.play.bloxity.io/</div>
+        <button class="copy" data-v="https://motorcycle-evolution.play.bloxity.io/">Copy</button>
+    </div>
+        <div class="field"><div class="label">CG URL (optional)</div><div class="val empty">Leave empty (there is no separate CrazyGames build)</div><span></span></div>
+        
+    <div class="field">
+        <div class="label">Additional Game Domains</div>
+        <div class="val mono">motorcycle-evolution.play.bloxity.io
+motorcycle-evolution.dev.play.bloxity.io
+motorcycle-evolution.host.bloxity.io</div>
+        <button class="copy" data-v="motorcycle-evolution.play.bloxity.io
+motorcycle-evolution.dev.play.bloxity.io
+motorcycle-evolution.host.bloxity.io">Copy</button>
+    </div>
+        
+    <div class="field">
+        <div class="label">Short Description</div>
+        <div class="val">Every step = +Speed! Ride your motorcycle through 6 crazy stages, collect Wins and unlock faster bikes.</div>
+        <button class="copy" data-v="Every step = +Speed! Ride your motorcycle through 6 crazy stages, collect Wins and unlock faster bikes.">Copy</button>
+    </div>
+        
+    <div class="field">
+        <div class="label">Description</div>
+        <div class="val">Hop on your motorcycle and ride! Every step gives you +Speed, Speed levels you up, and every level makes your bike faster. Race through 6 stages of a neon city: jump across floating blocks, leap over barriers and pop-up spikes, stop for cars bursting out of tunnels, dodge highway traffic and outrun the police in the giant police square. Reach the end of each stage for Wins, unlock 16 motorcycles up to the Celestial God (+25K/Speed), train on treadmills up to 100x, rebirth for bigger boosts and race your friends to the top of the leaderboards.</div>
+        <button class="copy" data-v="Hop on your motorcycle and ride! Every step gives you +Speed, Speed levels you up, and every level makes your bike faster. Race through 6 stages of a neon city: jump across floating blocks, leap over barriers and pop-up spikes, stop for cars bursting out of tunnels, dodge highway traffic and outrun the police in the giant police square. Reach the end of each stage for Wins, unlock 16 motorcycles up to the Celestial God (+25K/Speed), train on treadmills up to 100x, rebirth for bigger boosts and race your friends to the top of the leaderboards.">Copy</button>
+    </div>
+    </div>
+
+    <h2>Checkboxes</h2>
+    <div class="tablewrap"><table><thead><tr><th>Option</th><th>Set to</th><th>Why</th></tr></thead><tbody><tr><td>SDK Support</td><td class="on">☑ ON</td><td class="why">The game loads the Bloxity SDK (login, avatars, Bux, friends).</td></tr><tr><td>LoadingEnd Support</td><td class="on">☑ ON</td><td class="why">The game calls loadingEnd() as soon as it has joined a server (and on errors).</td></tr><tr><td>Active</td><td class="on">☑ ON</td><td class="why">Live for players.</td></tr><tr><td>Disable from Discovery</td><td class="off">☐ off</td><td class="why">Turn on only if you want to test with the direct link first.</td></tr><tr><td>Disable on New Games category</td><td class="off">☐ off</td><td class="why"></td></tr><tr><td>Add to Pre Release category</td><td class="off">☐ off</td><td class="why"></td></tr><tr><td>Under Maintenance</td><td class="off">☐ off</td><td class="why"></td></tr><tr><td>Show Boxity Chat</td><td class="on">☑ ON</td><td class="why">In-game chat works: messages show as bubbles over players.</td></tr><tr><td>In-game Voice</td><td class="on">☑ ON</td><td class="why">The game reports its room with updateRoom(), so room voice works.</td></tr><tr><td>Show Missions Button</td><td class="off">☐ off</td><td class="why">The game has no Boxity missions set up yet.</td></tr><tr><td>Mobile Force Landscape</td><td class="on">☑ ON</td><td class="why">The HUD is built for a wide screen; phones play best sideways.</td></tr><tr><td>Disable for CG</td><td class="off">☐ off</td><td class="why"></td></tr><tr><td>Disable for MSN</td><td class="off">☐ off</td><td class="why"></td></tr><tr><td>Enable New ESC Menu</td><td class="on">☑ ON</td><td class="why">Works with the room id the game reports.</td></tr></tbody></table></div>
+    <div class="card" style="margin-top:12px">
+        <div class="field"><div class="label">Engine</div><div class="val">three.js <span class="mono" style="color:var(--muted)">(only an admin can set this; ask them)</span></div><span></span></div>
+        <div class="field"><div class="label">Page Layout</div><div class="val">Classic</div><span></span></div>
+    </div>
+
+    <h2>Cover Images <small>(required)</small></h2>
+    <p class="sub">Drop these files into the two slots. They were rendered from the game itself.</p>
+    <div class="covers"><div><b>Landscape 16:9 (1920x1080)</b><div><a href="store-art/cover-1920x1080.png" target="_blank"><img src="store-art/cover-1920x1080.png" alt="cover-1920x1080.png"></a><div class="file mono">store-art/cover-1920x1080.png</div></div></div><div><b>Square 1:1 (800x800)</b><div><a href="store-art/cover-800x800.png" target="_blank"><img src="store-art/cover-800x800.png" alt="cover-800x800.png"></a><div class="file mono">store-art/cover-800x800.png</div></div></div></div>
+    <div class="note">Preview Video and CG Thumbnail: leave empty (the CG slots fall back to these covers).</div>
+
+    <h2>Other Media</h2>
+    <div class="card">
+        <div class="field"><div class="label">YouTube / Discord / X links</div><div class="val empty">Leave empty unless you have them</div><span></span></div>
+        <div class="field"><div class="label">All Rooms Backend URL</div><div class="val empty">Leave empty</div><span></span></div>
+    </div>
+    <h2>Screenshots <small>(5/10)</small></h2>
+    <p class="sub">Add these in this order.</p>
+    <div class="shots"><div><a href="store-art/shot-1-police-square.png" target="_blank"><img src="store-art/shot-1-police-square.png" alt="shot-1-police-square.png"></a><div class="file mono">store-art/shot-1-police-square.png</div></div><div><a href="store-art/shot-2-floating-blocks.png" target="_blank"><img src="store-art/shot-2-floating-blocks.png" alt="shot-2-floating-blocks.png"></a><div class="file mono">store-art/shot-2-floating-blocks.png</div></div><div><a href="store-art/shot-3-spikes.png" target="_blank"><img src="store-art/shot-3-spikes.png" alt="shot-3-spikes.png"></a><div class="file mono">store-art/shot-3-spikes.png</div></div><div><a href="store-art/shot-4-tunnels.png" target="_blank"><img src="store-art/shot-4-tunnels.png" alt="shot-4-tunnels.png"></a><div class="file mono">store-art/shot-4-tunnels.png</div></div><div><a href="store-art/shot-5-showroom.png" target="_blank"><img src="store-art/shot-5-showroom.png" alt="shot-5-showroom.png"></a><div class="file mono">store-art/shot-5-showroom.png</div></div></div>
+
+    <h2>Tags <small>(20 of max 20, click each in the tag bank; skip any the bank doesn't have)</small></h2>
+    <div class="card"><div class="tags"><span class="tag">Simulation</span><span class="tag">+1 Games</span><span class="tag">Racing</span><span class="tag">Obby</span><span class="tag">Platformer</span><span class="tag">Idle</span><span class="tag">Arcade</span><span class="tag">Multiplayer</span><span class="tag">Collecting</span><span class="tag">Customization</span><span class="tag">City</span><span class="tag">3D</span><span class="tag">Cartoon</span><span class="tag">Roblox-style</span><span class="tag">Casual</span><span class="tag">Funny</span><span class="tag">Family-friendly</span><span class="tag">Leaderboards</span><span class="tag">In-game Currency</span><span class="tag">Addictive</span></div></div>
+
+    <h2>In-App Purchases <small>(14)</small></h2>
+    <div class="card">
+    <div class="field">
+        <div class="label">Default Webhook URL</div>
+        <div class="val mono">https://motorcycle-evolution.host.bloxity.io/api/legion-webhook</div>
+        <button class="copy" data-v="https://motorcycle-evolution.host.bloxity.io/api/legion-webhook">Copy</button>
+    </div></div>
+    <p class="sub" style="margin-top:10px">Then click <b>+ Add IAP</b> once per row below and copy its four values in. Tick <b>Added</b> when a row is done (remembered in this browser). <span id="progress" class="prog"></span> <button class="copy" id="resetDone">Reset ticks</button><br> The SKU must match exactly; the game finds each item by it. Prices are in Bux.</p>
+    <h2 style="font-size:16px;margin-top:14px">Products (8) — can be bought again</h2>
+    <div class="tablewrap"><table class="iapt"><thead><tr><th>#</th><th>SKU</th><th>Name</th><th>Price (Bux)</th><th>Description</th><th>Added</th></tr></thead><tbody><tr class="iap" data-sku="speed_100k"><td class="n">1</td><td><div class="cc"><span class="mono">speed_100k</span><button class="copy big" data-v="speed_100k">Copy</button></div></td><td><div class="cc"><span class="">+100K Speed</span><button class="copy big" data-v="+100K Speed">Copy</button></div></td><td><div class="cc"><span class="mono">29</span><button class="copy big" data-v="29">Copy</button></div></td><td><div class="cc"><span class="">Instantly adds 100,000 Speed (counts as XP, so it levels you up and makes your bike faster).</span><button class="copy big" data-v="Instantly adds 100,000 Speed (counts as XP, so it levels you up and makes your bike faster).">Copy</button></div></td><td class="n"><input type="checkbox" class="done-chk" aria-label="Added +100K Speed"></td></tr><tr class="iap" data-sku="speed_1m"><td class="n">2</td><td><div class="cc"><span class="mono">speed_1m</span><button class="copy big" data-v="speed_1m">Copy</button></div></td><td><div class="cc"><span class="">+1M Speed</span><button class="copy big" data-v="+1M Speed">Copy</button></div></td><td><div class="cc"><span class="mono">79</span><button class="copy big" data-v="79">Copy</button></div></td><td><div class="cc"><span class="">Instantly adds 1,000,000 Speed (counts as XP).</span><button class="copy big" data-v="Instantly adds 1,000,000 Speed (counts as XP).">Copy</button></div></td><td class="n"><input type="checkbox" class="done-chk" aria-label="Added +1M Speed"></td></tr><tr class="iap" data-sku="speed_10m"><td class="n">3</td><td><div class="cc"><span class="mono">speed_10m</span><button class="copy big" data-v="speed_10m">Copy</button></div></td><td><div class="cc"><span class="">+10M Speed</span><button class="copy big" data-v="+10M Speed">Copy</button></div></td><td><div class="cc"><span class="mono">149</span><button class="copy big" data-v="149">Copy</button></div></td><td><div class="cc"><span class="">Instantly adds 10,000,000 Speed (counts as XP).</span><button class="copy big" data-v="Instantly adds 10,000,000 Speed (counts as XP).">Copy</button></div></td><td class="n"><input type="checkbox" class="done-chk" aria-label="Added +10M Speed"></td></tr><tr class="iap" data-sku="starter_pack"><td class="n">4</td><td><div class="cc"><span class="mono">starter_pack</span><button class="copy big" data-v="starter_pack">Copy</button></div></td><td><div class="cc"><span class="">OP Starter Pack</span><button class="copy big" data-v="OP Starter Pack">Copy</button></div></td><td><div class="cc"><span class="mono">19</span><button class="copy big" data-v="19">Copy</button></div></td><td><div class="cc"><span class="">One-time starter bundle: +50K Speed and +15 Wins.</span><button class="copy big" data-v="One-time starter bundle: +50K Speed and +15 Wins.">Copy</button></div></td><td class="n"><input type="checkbox" class="done-chk" aria-label="Added OP Starter Pack"></td></tr><tr class="iap" data-sku="revive"><td class="n">5</td><td><div class="cc"><span class="mono">revive</span><button class="copy big" data-v="revive">Copy</button></div></td><td><div class="cc"><span class="">Revive</span><button class="copy big" data-v="Revive">Copy</button></div></td><td><div class="cc"><span class="mono">9</span><button class="copy big" data-v="9">Copy</button></div></td><td><div class="cc"><span class="">Crashed? Revive right where you crashed, with a few seconds of shield.</span><button class="copy big" data-v="Crashed? Revive right where you crashed, with a few seconds of shield.">Copy</button></div></td><td class="n"><input type="checkbox" class="done-chk" aria-label="Added Revive"></td></tr><tr class="iap" data-sku="speed_boost"><td class="n">6</td><td><div class="cc"><span class="mono">speed_boost</span><button class="copy big" data-v="speed_boost">Copy</button></div></td><td><div class="cc"><span class="">x2 Speed Boost (15 min)</span><button class="copy big" data-v="x2 Speed Boost (15 min)">Copy</button></div></td><td><div class="cc"><span class="mono">49</span><button class="copy big" data-v="49">Copy</button></div></td><td><div class="cc"><span class="">Doubles all Speed you earn for 15 minutes. Stacks its time.</span><button class="copy big" data-v="Doubles all Speed you earn for 15 minutes. Stacks its time.">Copy</button></div></td><td class="n"><input type="checkbox" class="done-chk" aria-label="Added x2 Speed Boost (15 min)"></td></tr><tr class="iap" data-sku="wins_500"><td class="n">7</td><td><div class="cc"><span class="mono">wins_500</span><button class="copy big" data-v="wins_500">Copy</button></div></td><td><div class="cc"><span class="">+500 Wins</span><button class="copy big" data-v="+500 Wins">Copy</button></div></td><td><div class="cc"><span class="mono">99</span><button class="copy big" data-v="99">Copy</button></div></td><td><div class="cc"><span class="">Adds 500 Wins to unlock faster motorcycles.</span><button class="copy big" data-v="Adds 500 Wins to unlock faster motorcycles.">Copy</button></div></td><td class="n"><input type="checkbox" class="done-chk" aria-label="Added +500 Wins"></td></tr><tr class="iap" data-sku="wins_5k"><td class="n">8</td><td><div class="cc"><span class="mono">wins_5k</span><button class="copy big" data-v="wins_5k">Copy</button></div></td><td><div class="cc"><span class="">+5K Wins</span><button class="copy big" data-v="+5K Wins">Copy</button></div></td><td><div class="cc"><span class="mono">399</span><button class="copy big" data-v="399">Copy</button></div></td><td><div class="cc"><span class="">Adds 5,000 Wins to unlock faster motorcycles.</span><button class="copy big" data-v="Adds 5,000 Wins to unlock faster motorcycles.">Copy</button></div></td><td class="n"><input type="checkbox" class="done-chk" aria-label="Added +5K Wins"></td></tr></tbody></table></div>
+    <h2 style="font-size:16px;margin-top:18px">Game passes (6) — bought once</h2>
+    <div class="tablewrap"><table class="iapt"><thead><tr><th>#</th><th>SKU</th><th>Name</th><th>Price (Bux)</th><th>Description</th><th>Added</th></tr></thead><tbody><tr class="iap" data-sku="pass_double_speed"><td class="n">9</td><td><div class="cc"><span class="mono">pass_double_speed</span><button class="copy big" data-v="pass_double_speed">Copy</button></div></td><td><div class="cc"><span class="">x2 Speed</span><button class="copy big" data-v="x2 Speed">Copy</button></div></td><td><div class="cc"><span class="mono">9</span><button class="copy big" data-v="9">Copy</button></div></td><td><div class="cc"><span class="">Permanently doubles all Speed you earn.</span><button class="copy big" data-v="Permanently doubles all Speed you earn.">Copy</button></div></td><td class="n"><input type="checkbox" class="done-chk" aria-label="Added x2 Speed"></td></tr><tr class="iap" data-sku="pass_double_wins"><td class="n">10</td><td><div class="cc"><span class="mono">pass_double_wins</span><button class="copy big" data-v="pass_double_wins">Copy</button></div></td><td><div class="cc"><span class="">x2 Wins</span><button class="copy big" data-v="x2 Wins">Copy</button></div></td><td><div class="cc"><span class="mono">139</span><button class="copy big" data-v="139">Copy</button></div></td><td><div class="cc"><span class="">Permanently doubles the Wins from every stage pad.</span><button class="copy big" data-v="Permanently doubles the Wins from every stage pad.">Copy</button></div></td><td class="n"><input type="checkbox" class="done-chk" aria-label="Added x2 Wins"></td></tr><tr class="iap" data-sku="pass_treadmill_100x"><td class="n">11</td><td><div class="cc"><span class="mono">pass_treadmill_100x</span><button class="copy big" data-v="pass_treadmill_100x">Copy</button></div></td><td><div class="cc"><span class="">100x Treadmill</span><button class="copy big" data-v="100x Treadmill">Copy</button></div></td><td><div class="cc"><span class="mono">279</span><button class="copy big" data-v="279">Copy</button></div></td><td><div class="cc"><span class="">Unlocks the 100x treadmill: 100x Speed per step while you train.</span><button class="copy big" data-v="Unlocks the 100x treadmill: 100x Speed per step while you train.">Copy</button></div></td><td class="n"><input type="checkbox" class="done-chk" aria-label="Added 100x Treadmill"></td></tr><tr class="iap" data-sku="pass_cheap_bike"><td class="n">12</td><td><div class="cc"><span class="mono">pass_cheap_bike</span><button class="copy big" data-v="pass_cheap_bike">Copy</button></div></td><td><div class="cc"><span class="">Pocket Rocket</span><button class="copy big" data-v="Pocket Rocket">Copy</button></div></td><td><div class="cc"><span class="mono">9</span><button class="copy big" data-v="9">Copy</button></div></td><td><div class="cc"><span class="">Unlocks the Pocket Rocket scooter: +40 Speed per step.</span><button class="copy big" data-v="Unlocks the Pocket Rocket scooter: +40 Speed per step.">Copy</button></div></td><td class="n"><input type="checkbox" class="done-chk" aria-label="Added Pocket Rocket"></td></tr><tr class="iap" data-sku="pass_op_bike"><td class="n">13</td><td><div class="cc"><span class="mono">pass_op_bike</span><button class="copy big" data-v="pass_op_bike">Copy</button></div></td><td><div class="cc"><span class="">OP Nitro Dragon</span><button class="copy big" data-v="OP Nitro Dragon">Copy</button></div></td><td><div class="cc"><span class="mono">199</span><button class="copy big" data-v="199">Copy</button></div></td><td><div class="cc"><span class="">Unlocks the OP Nitro Dragon: +400 Speed per step, with neon underglow.</span><button class="copy big" data-v="Unlocks the OP Nitro Dragon: +400 Speed per step, with neon underglow.">Copy</button></div></td><td class="n"><input type="checkbox" class="done-chk" aria-label="Added OP Nitro Dragon"></td></tr><tr class="iap" data-sku="pass_rainbow_aura"><td class="n">14</td><td><div class="cc"><span class="mono">pass_rainbow_aura</span><button class="copy big" data-v="pass_rainbow_aura">Copy</button></div></td><td><div class="cc"><span class="">Rainbow Aura</span><button class="copy big" data-v="Rainbow Aura">Copy</button></div></td><td><div class="cc"><span class="mono">99</span><button class="copy big" data-v="99">Copy</button></div></td><td><div class="cc"><span class="">Unlocks the Rainbow Aura: x5 Speed.</span><button class="copy big" data-v="Unlocks the Rainbow Aura: x5 Speed.">Copy</button></div></td><td class="n"><input type="checkbox" class="done-chk" aria-label="Added Rainbow Aura"></td></tr></tbody></table></div>
+    <div class="note"><b>Starter Pack</b> is a product, but the server only grants it once per player. <b>Revive</b> is offered on the crash card.</div>
+
+    <h2>Release</h2>
+    <div class="card"><div class="field"><div class="label">Release date &amp; time</div><div class="val">Click <b>Clear</b> so it publishes as soon as it is Active.</div><span></span></div></div>
+    <p class="sub" style="margin-top:10px">Then click <b>Create Game</b>.</p>
+
+    <h2>After you create the game</h2>
+    <div class="card" style="padding:14px 16px">
+        <ol class="steps">
+            <li>Make a long random secret (any password generator). Put the same value in the webhook's secret if the IAP form asks for one, and in the server env var below.</li>
+            <li>hosting.bloxity.io → app <code>motorcycle-evolution</code> → environment:
+                <div class="card" style="margin-top:8px">
+                    
+    <div class="field">
+        <div class="label">LEGION_WEBHOOK_SECRET</div>
+        <div class="val">&lt;your secret&gt; (turns off demo mode: purchases cost real Bux)</div>
+        <button class="copy" data-v="&lt;your secret&gt; (turns off demo mode: purchases cost real Bux)">Copy</button>
+    </div>
+                    
+    <div class="field">
+        <div class="label">SAVE_SECRET</div>
+        <div class="val">&lt;another long random string&gt; (signs progress backups)</div>
+        <button class="copy" data-v="&lt;another long random string&gt; (signs progress backups)">Copy</button>
+    </div>
+                </div></li>
+            <li>Bloxity sends each purchase to <code>https://motorcycle-evolution.host.bloxity.io/api/legion-webhook</code> with the header <code>x-legion-webhook-secret</code>; the server only accepts it when the header matches <code>LEGION_WEBHOOK_SECRET</code>.</li>
+            <li>Redeploy (push to <code>main</code>, or tell Claude), then buy one cheap item to test.</li>
+        </ol>
+    </div>
+
+    <h2>All IAP items as JSON</h2>
+    <p class="sub">For bulk import, if the catalog supports it. <button class="copy" data-v="[
+  {
+    &quot;sku&quot;: &quot;speed_100k&quot;,
+    &quot;name&quot;: &quot;+100K Speed&quot;,
+    &quot;type&quot;: &quot;product&quot;,
+    &quot;price&quot;: 29,
+    &quot;description&quot;: &quot;Instantly adds 100,000 Speed (counts as XP, so it levels you up and makes your bike faster).&quot;
+  },
+  {
+    &quot;sku&quot;: &quot;speed_1m&quot;,
+    &quot;name&quot;: &quot;+1M Speed&quot;,
+    &quot;type&quot;: &quot;product&quot;,
+    &quot;price&quot;: 79,
+    &quot;description&quot;: &quot;Instantly adds 1,000,000 Speed (counts as XP).&quot;
+  },
+  {
+    &quot;sku&quot;: &quot;speed_10m&quot;,
+    &quot;name&quot;: &quot;+10M Speed&quot;,
+    &quot;type&quot;: &quot;product&quot;,
+    &quot;price&quot;: 149,
+    &quot;description&quot;: &quot;Instantly adds 10,000,000 Speed (counts as XP).&quot;
+  },
+  {
+    &quot;sku&quot;: &quot;starter_pack&quot;,
+    &quot;name&quot;: &quot;OP Starter Pack&quot;,
+    &quot;type&quot;: &quot;product&quot;,
+    &quot;price&quot;: 19,
+    &quot;description&quot;: &quot;One-time starter bundle: +50K Speed and +15 Wins.&quot;
+  },
+  {
+    &quot;sku&quot;: &quot;revive&quot;,
+    &quot;name&quot;: &quot;Revive&quot;,
+    &quot;type&quot;: &quot;product&quot;,
+    &quot;price&quot;: 9,
+    &quot;description&quot;: &quot;Crashed? Revive right where you crashed, with a few seconds of shield.&quot;
+  },
+  {
+    &quot;sku&quot;: &quot;speed_boost&quot;,
+    &quot;name&quot;: &quot;x2 Speed Boost (15 min)&quot;,
+    &quot;type&quot;: &quot;product&quot;,
+    &quot;price&quot;: 49,
+    &quot;description&quot;: &quot;Doubles all Speed you earn for 15 minutes. Stacks its time.&quot;
+  },
+  {
+    &quot;sku&quot;: &quot;wins_500&quot;,
+    &quot;name&quot;: &quot;+500 Wins&quot;,
+    &quot;type&quot;: &quot;product&quot;,
+    &quot;price&quot;: 99,
+    &quot;description&quot;: &quot;Adds 500 Wins to unlock faster motorcycles.&quot;
+  },
+  {
+    &quot;sku&quot;: &quot;wins_5k&quot;,
+    &quot;name&quot;: &quot;+5K Wins&quot;,
+    &quot;type&quot;: &quot;product&quot;,
+    &quot;price&quot;: 399,
+    &quot;description&quot;: &quot;Adds 5,000 Wins to unlock faster motorcycles.&quot;
+  },
+  {
+    &quot;sku&quot;: &quot;pass_double_speed&quot;,
+    &quot;name&quot;: &quot;x2 Speed&quot;,
+    &quot;type&quot;: &quot;pass&quot;,
+    &quot;price&quot;: 9,
+    &quot;description&quot;: &quot;Permanently doubles all Speed you earn.&quot;
+  },
+  {
+    &quot;sku&quot;: &quot;pass_double_wins&quot;,
+    &quot;name&quot;: &quot;x2 Wins&quot;,
+    &quot;type&quot;: &quot;pass&quot;,
+    &quot;price&quot;: 139,
+    &quot;description&quot;: &quot;Permanently doubles the Wins from every stage pad.&quot;
+  },
+  {
+    &quot;sku&quot;: &quot;pass_treadmill_100x&quot;,
+    &quot;name&quot;: &quot;100x Treadmill&quot;,
+    &quot;type&quot;: &quot;pass&quot;,
+    &quot;price&quot;: 279,
+    &quot;description&quot;: &quot;Unlocks the 100x treadmill: 100x Speed per step while you train.&quot;
+  },
+  {
+    &quot;sku&quot;: &quot;pass_cheap_bike&quot;,
+    &quot;name&quot;: &quot;Pocket Rocket&quot;,
+    &quot;type&quot;: &quot;pass&quot;,
+    &quot;price&quot;: 9,
+    &quot;description&quot;: &quot;Unlocks the Pocket Rocket scooter: +40 Speed per step.&quot;
+  },
+  {
+    &quot;sku&quot;: &quot;pass_op_bike&quot;,
+    &quot;name&quot;: &quot;OP Nitro Dragon&quot;,
+    &quot;type&quot;: &quot;pass&quot;,
+    &quot;price&quot;: 199,
+    &quot;description&quot;: &quot;Unlocks the OP Nitro Dragon: +400 Speed per step, with neon underglow.&quot;
+  },
+  {
+    &quot;sku&quot;: &quot;pass_rainbow_aura&quot;,
+    &quot;name&quot;: &quot;Rainbow Aura&quot;,
+    &quot;type&quot;: &quot;pass&quot;,
+    &quot;price&quot;: 99,
+    &quot;description&quot;: &quot;Unlocks the Rainbow Aura: x5 Speed.&quot;
+  }
+]">Copy JSON</button></p>
+    <pre class="mono">[
+  {
+    &quot;sku&quot;: &quot;speed_100k&quot;,
+    &quot;name&quot;: &quot;+100K Speed&quot;,
+    &quot;type&quot;: &quot;product&quot;,
+    &quot;price&quot;: 29,
+    &quot;description&quot;: &quot;Instantly adds 100,000 Speed (counts as XP, so it levels you up and makes your bike faster).&quot;
+  },
+  {
+    &quot;sku&quot;: &quot;speed_1m&quot;,
+    &quot;name&quot;: &quot;+1M Speed&quot;,
+    &quot;type&quot;: &quot;product&quot;,
+    &quot;price&quot;: 79,
+    &quot;description&quot;: &quot;Instantly adds 1,000,000 Speed (counts as XP).&quot;
+  },
+  {
+    &quot;sku&quot;: &quot;speed_10m&quot;,
+    &quot;name&quot;: &quot;+10M Speed&quot;,
+    &quot;type&quot;: &quot;product&quot;,
+    &quot;price&quot;: 149,
+    &quot;description&quot;: &quot;Instantly adds 10,000,000 Speed (counts as XP).&quot;
+  },
+  {
+    &quot;sku&quot;: &quot;starter_pack&quot;,
+    &quot;name&quot;: &quot;OP Starter Pack&quot;,
+    &quot;type&quot;: &quot;product&quot;,
+    &quot;price&quot;: 19,
+    &quot;description&quot;: &quot;One-time starter bundle: +50K Speed and +15 Wins.&quot;
+  },
+  {
+    &quot;sku&quot;: &quot;revive&quot;,
+    &quot;name&quot;: &quot;Revive&quot;,
+    &quot;type&quot;: &quot;product&quot;,
+    &quot;price&quot;: 9,
+    &quot;description&quot;: &quot;Crashed? Revive right where you crashed, with a few seconds of shield.&quot;
+  },
+  {
+    &quot;sku&quot;: &quot;speed_boost&quot;,
+    &quot;name&quot;: &quot;x2 Speed Boost (15 min)&quot;,
+    &quot;type&quot;: &quot;product&quot;,
+    &quot;price&quot;: 49,
+    &quot;description&quot;: &quot;Doubles all Speed you earn for 15 minutes. Stacks its time.&quot;
+  },
+  {
+    &quot;sku&quot;: &quot;wins_500&quot;,
+    &quot;name&quot;: &quot;+500 Wins&quot;,
+    &quot;type&quot;: &quot;product&quot;,
+    &quot;price&quot;: 99,
+    &quot;description&quot;: &quot;Adds 500 Wins to unlock faster motorcycles.&quot;
+  },
+  {
+    &quot;sku&quot;: &quot;wins_5k&quot;,
+    &quot;name&quot;: &quot;+5K Wins&quot;,
+    &quot;type&quot;: &quot;product&quot;,
+    &quot;price&quot;: 399,
+    &quot;description&quot;: &quot;Adds 5,000 Wins to unlock faster motorcycles.&quot;
+  },
+  {
+    &quot;sku&quot;: &quot;pass_double_speed&quot;,
+    &quot;name&quot;: &quot;x2 Speed&quot;,
+    &quot;type&quot;: &quot;pass&quot;,
+    &quot;price&quot;: 9,
+    &quot;description&quot;: &quot;Permanently doubles all Speed you earn.&quot;
+  },
+  {
+    &quot;sku&quot;: &quot;pass_double_wins&quot;,
+    &quot;name&quot;: &quot;x2 Wins&quot;,
+    &quot;type&quot;: &quot;pass&quot;,
+    &quot;price&quot;: 139,
+    &quot;description&quot;: &quot;Permanently doubles the Wins from every stage pad.&quot;
+  },
+  {
+    &quot;sku&quot;: &quot;pass_treadmill_100x&quot;,
+    &quot;name&quot;: &quot;100x Treadmill&quot;,
+    &quot;type&quot;: &quot;pass&quot;,
+    &quot;price&quot;: 279,
+    &quot;description&quot;: &quot;Unlocks the 100x treadmill: 100x Speed per step while you train.&quot;
+  },
+  {
+    &quot;sku&quot;: &quot;pass_cheap_bike&quot;,
+    &quot;name&quot;: &quot;Pocket Rocket&quot;,
+    &quot;type&quot;: &quot;pass&quot;,
+    &quot;price&quot;: 9,
+    &quot;description&quot;: &quot;Unlocks the Pocket Rocket scooter: +40 Speed per step.&quot;
+  },
+  {
+    &quot;sku&quot;: &quot;pass_op_bike&quot;,
+    &quot;name&quot;: &quot;OP Nitro Dragon&quot;,
+    &quot;type&quot;: &quot;pass&quot;,
+    &quot;price&quot;: 199,
+    &quot;description&quot;: &quot;Unlocks the OP Nitro Dragon: +400 Speed per step, with neon underglow.&quot;
+  },
+  {
+    &quot;sku&quot;: &quot;pass_rainbow_aura&quot;,
+    &quot;name&quot;: &quot;Rainbow Aura&quot;,
+    &quot;type&quot;: &quot;pass&quot;,
+    &quot;price&quot;: 99,
+    &quot;description&quot;: &quot;Unlocks the Rainbow Aura: x5 Speed.&quot;
+  }
+]</pre>
+</main>
+<script>
+(function () {
+    const KEY = 'pme_iap_done';
+    let done = {};
+    try { done = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { done = {}; }
+    const cards = [...document.querySelectorAll('.iap')];
+    const paint = () => {
+        let n = 0;
+        cards.forEach((c) => { const on = !!done[c.dataset.sku]; c.classList.toggle('isdone', on); c.querySelector('.done-chk').checked = on; if (on) n++; });
+        const p = document.getElementById('progress'); if (p) p.textContent = n + ' / ' + cards.length + ' added';
+    };
+    cards.forEach((c) => c.querySelector('.done-chk').addEventListener('change', (e) => {
+        done[c.dataset.sku] = e.target.checked;
+        try { localStorage.setItem(KEY, JSON.stringify(done)); } catch (err) { /* private mode */ }
+        paint();
+    }));
+    const r = document.getElementById('resetDone');
+    if (r) r.addEventListener('click', () => { done = {}; try { localStorage.removeItem(KEY); } catch (err) { /* ignore */ } paint(); });
+    paint();
+})();
+document.addEventListener('click', async (e) => {
+    const b = e.target.closest('button.copy');
+    if (!b || !b.dataset.v) return;
+    try { await navigator.clipboard.writeText(b.dataset.v); }
+    catch (err) { const t = document.createElement('textarea'); t.value = b.dataset.v; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); }
+    const old = b.textContent; b.textContent = '✓'; b.classList.add('done');
+    setTimeout(() => { b.textContent = old; b.classList.remove('done'); }, 1200);
+});
+</script>
+</body>
+</html>
