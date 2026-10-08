@@ -3,8 +3,9 @@ import crypto from 'node:crypto';
 // Signed progress backups kept in the player's browser. Hosts with a temporary disk
 // (Render's free tier) lose profiles.json whenever the service restarts; on the next join
 // the browser hands its last backup back and we restore it. The HMAC stops edited backups.
-const SECRET = process.env.SAVE_SECRET || 'motorcycle-evolution-dev-only';
-if (!process.env.SAVE_SECRET) console.warn('[saves] SAVE_SECRET is not set; using the dev-only key');
+// On Legion the per-game JWT_SECRET it injects signs the backups (Legion has no custom env vars)
+const SECRET = process.env.SAVE_SECRET || process.env.JWT_SECRET || 'motorcycle-evolution-dev-only';
+if (!process.env.SAVE_SECRET && !process.env.JWT_SECRET) console.warn('[saves] no SAVE_SECRET / JWT_SECRET; using the dev-only key');
 
 const FIELDS = [
     'speed', 'wins', 'level', 'xp', 'rebirths', 'owned', 'equipped', 'auras', 'aura', 'passes',

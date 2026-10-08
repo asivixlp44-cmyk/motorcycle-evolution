@@ -1,11 +1,12 @@
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import config, { listen } from '@colyseus/tools';
 import { defineRoom } from 'colyseus';
 import express from 'express';
 import { SpeedRoom, grantPurchase } from './SpeedRoom.js';
-import { WEBHOOK_SECRET, installStatReporter } from './bloxity.js';
+import { WEBHOOK_SECRET, WEBHOOK_KEY_SHA256, BUX_MODE, installStatReporter } from './bloxity.js';
 import { saveProfiles, firstDelivery } from './profiles.js';
 import { skuLookup } from '../../shared/config.js';
 
@@ -13,9 +14,23 @@ import { skuLookup } from '../../shared/config.js';
 // so one Node host is enough to run the whole game.
 const CLIENT_DIST = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'client', 'dist');
 
+const sha256 = (s) => crypto.createHash('sha256').update(String(s)).digest();
+const sameHash = (s, hex) => crypto.timingSafeEqual(sha256(s), Buffer.from(hex, 'hex'));
+// A webhook is genuine when it carries the URL key (?key=...) or the header matching
+// LEGION_WEBHOOK_SECRET. In Bux mode nothing else is accepted; in local demo mode anything is.
+function webhookAllowed(req) {
+    const key = req.query && typeof req.query.key === 'string' ? req.query.key : '';
+    if (key && sameHash(key, WEBHOOK_KEY_SHA256)) return true;
+    const header = req.get('x-legion-webhook-secret') || '';
+    if (header && WEBHOOK_SECRET && sameHash(header, sha256(WEBHOOK_SECRET).toString('hex'))) return true;
+    if (header && sameHash(header, WEBHOOK_KEY_SHA256)) return true;
+    return !BUX_MODE && !WEBHOOK_SECRET;
+}
+
 // Bloxity calls this after deducting Bux; answer 2xx within 10 s or the Bux are refunded
 async function buxWebhook(req, res) {
-    if (WEBHOOK_SECRET && req.get('x-legion-webhook-secret') !== WEBHOOK_SECRET) {
+    if (!webhookAllowed(req)) {
+        console.warn('[Bux] rejected a webhook without a valid key');
         return res.status(401).json({ error: 'bad secret' });
     }
     const b = req.body || {};

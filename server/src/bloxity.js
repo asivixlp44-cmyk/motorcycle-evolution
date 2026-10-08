@@ -2,9 +2,13 @@
 import { allProfiles } from './profiles.js';
 
 export const API_URL = process.env.BLOXITY_API_URL || 'https://api.bloxity.io';
-// Bux mode: purchases are only granted by the Bloxity webhook (set on the live host)
-export const BUX_MODE = !!process.env.LEGION_WEBHOOK_SECRET || process.env.BUX_MODE === '1';
+// Bux mode: purchases are only granted by the Bloxity webhook. Legion has no custom env vars,
+// so running on Legion (it injects BLOXITY_GAME_ID) turns it on; locally it stays in demo mode.
+export const BUX_MODE = !!process.env.BLOXITY_GAME_ID || !!process.env.LEGION_WEBHOOK_SECRET || process.env.BUX_MODE === '1';
 export const WEBHOOK_SECRET = process.env.LEGION_WEBHOOK_SECRET || '';
+// The webhook URL set on bloxity.io carries a secret key (?key=...). Only its SHA-256 lives here,
+// so the public repo never holds the key itself.
+export const WEBHOOK_KEY_SHA256 = '093046fb971ed8c62546b8c3ced87a7b460c948cf1e98d2b9434e1b894d826b2';
 
 async function fetchJson(url, opts, ms) {
     const ctl = new AbortController();

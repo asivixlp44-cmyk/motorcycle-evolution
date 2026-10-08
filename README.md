@@ -72,7 +72,7 @@ Phones get an on-screen joystick with JUMP and SPRINT buttons.
 
 - `GAME_SLUG` in `client/src/bloxity.js` defaults to `motorcycle-evolution`; it must match the slug of the game in bloxity.io Manage Games.
 - Every price is in **Bux**. Store items map to SKUs (`SKUS` in `shared/config.js`); create them in the game's IAP catalog: `speed_100k`, `speed_1m`, `speed_10m`, `starter_pack`, `revive`, `speed_boost`, `wins_500`, `wins_5k`, `pass_double_speed`, `pass_double_wins`, `pass_treadmill_100x`, `pass_cheap_bike`, `pass_op_bike`, `pass_rainbow_aura`. Without a catalog the game runs in demo mode, where purchases are free.
-- Set `LEGION_WEBHOOK_SECRET` on the server to switch to Bux mode; `POST /api/legion-webhook` then grants purchases.
+- Legion has no custom env vars. On Legion (it injects `BLOXITY_GAME_ID`) the server runs in **Bux mode**: purchases only come from the Bloxity webhook `POST /api/legion-webhook?key=<webhook key>`. The key itself is never in the repo, only its SHA-256 (`WEBHOOK_KEY_SHA256` in `server/src/bloxity.js`); a webhook without the right key gets 401. To change the key, generate a new one, put its SHA-256 there, redeploy and update the webhook URL on bloxity.io. Progress backups are signed with Legion's `JWT_SECRET`.
 
 ## Deploy (Bloxity hosting)
 

@@ -157,8 +157,8 @@ motorcycle-evolution.host.bloxity.io">Copy</button>
     <div class="card">
     <div class="field">
         <div class="label">Default Webhook URL</div>
-        <div class="val mono">https://motorcycle-evolution.host.bloxity.io/api/legion-webhook</div>
-        <button class="copy" data-v="https://motorcycle-evolution.host.bloxity.io/api/legion-webhook">Copy</button>
+        <div class="val mono">https://motorcycle-evolution.host.bloxity.io/api/legion-webhook?key=&lt;webhook key&gt;</div>
+        <button class="copy" data-v="https://motorcycle-evolution.host.bloxity.io/api/legion-webhook?key=">Copy</button>
     </div></div>
     <p class="sub" style="margin-top:10px">Then click <b>+ Add IAP</b> once per row below and copy its four values in. Tick <b>Added</b> when a row is done (remembered in this browser). <span id="progress" class="prog"></span> <button class="copy" id="resetDone">Reset ticks</button><br> The SKU must match exactly; the game finds each item by it. Prices are in Bux.</p>
     <h2 style="font-size:16px;margin-top:14px">Products (8) — can be bought again</h2>
@@ -174,24 +174,9 @@ motorcycle-evolution.host.bloxity.io">Copy</button>
     <h2>After you create the game</h2>
     <div class="card" style="padding:14px 16px">
         <ol class="steps">
-            <li>Make a long random secret (any password generator). Put the same value in the webhook's secret if the IAP form asks for one, and in the server env var below.</li>
-            <li>hosting.bloxity.io → app <code>motorcycle-evolution</code> → environment:
-                <div class="card" style="margin-top:8px">
-                    
-    <div class="field">
-        <div class="label">LEGION_WEBHOOK_SECRET</div>
-        <div class="val">&lt;your secret&gt; (turns off demo mode: purchases cost real Bux)</div>
-        <button class="copy" data-v="&lt;your secret&gt; (turns off demo mode: purchases cost real Bux)">Copy</button>
-    </div>
-                    
-    <div class="field">
-        <div class="label">SAVE_SECRET</div>
-        <div class="val">&lt;another long random string&gt; (signs progress backups)</div>
-        <button class="copy" data-v="&lt;another long random string&gt; (signs progress backups)">Copy</button>
-    </div>
-                </div></li>
-            <li>Bloxity sends each purchase to <code>https://motorcycle-evolution.host.bloxity.io/api/legion-webhook</code> with the header <code>x-legion-webhook-secret</code>; the server only accepts it when the header matches <code>LEGION_WEBHOOK_SECRET</code>.</li>
-            <li>Redeploy (push to <code>main</code>, or tell Claude), then buy one cheap item to test.</li>
+            <li>Legion has no custom env vars, so nothing is set on hosting.bloxity.io. On Legion the server runs in <b>Bux mode</b> by itself (purchases cost real Bux) and signs progress backups with the <code>JWT_SECRET</code> Legion injects.</li>
+            <li>The webhook is protected by a secret key in its URL: set the IAP webhook URL to <code>https://motorcycle-evolution.host.bloxity.io/api/legion-webhook?key=&lt;webhook key&gt;</code>. The key is not in this repo (only its SHA-256, in <code>server/src/bloxity.js</code>); a webhook without it is rejected.</li>
+            <li>Buy one cheap item to test.</li>
         </ol>
     </div>
 
