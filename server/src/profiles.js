@@ -34,11 +34,12 @@ async function connectDb() {
     const client = new MongoClient(MONGODB_URI, { maxPoolSize: 10, serverSelectionTimeoutMS: 10000 });
     await client.connect();
     const d = client.db(process.env.MONGODB_DB || undefined);
-    db = { profiles: d.collection('profiles'), grants: d.collection('grants'), txs: d.collection('transactions') };
+    db = { profiles: d.collection('profiles'), grants: d.collection('grants'), txs: d.collection('transactions'), sessions: d.collection('sessions') };
     await Promise.all([
         db.profiles.createIndex({ speed: -1 }),
         db.profiles.createIndex({ wins: -1 }),
         db.grants.createIndex({ uid: 1 }),
+        db.sessions.createIndex({ at: -1 }),
     ]).catch((e) => console.warn('[DB] index:', e.message));
     console.log('[DB] connected to MongoDB');
     return db;
@@ -213,4 +214,22 @@ setInterval(saveProfiles, USE_DB ? 10000 : 30000).unref();
 if (USE_DB) {
     storeReady().then(refreshBoards).catch(() => {});
     setInterval(refreshBoards, 30000).unref();
+}
+
+// ----- Play stats: one record per finished session (no names or ids), read by /api/stats -----
+const SESSIONS_FILE = path.join(DATA_DIR, 'sessions.jsonl');
+export async function recordSession(doc) {
+    if (USE_DB) { await storeReady(); await db.sessions.insertOne(doc); return; }
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.appendFileSync(SESSIONS_FILE, JSON.stringify(doc) + '\n');
+}
+export async function loadSessions(sinceMs, limit) {
+    if (USE_DB) {
+        await storeReady();
+        return db.sessions.find({ at: { $gte: new Date(sinceMs) } }, { projection: { _id: 0 } }).sort({ at: -1 }).limit(limit).toArray();
+    }
+    try {
+        return fs.readFileSync(SESSIONS_FILE, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l))
+            .filter((d) => new Date(d.at).getTime() >= sinceMs).slice(-limit).reverse();
+    } catch (e) { return []; }
 }

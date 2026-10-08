@@ -25,7 +25,7 @@ export const CFG = {
     race: { every: 300, countdown: 20, prizeWins: 5, maxTime: 120 },
     boostMult: 2,
     boostMinutes: 15,
-    reviveTimeout: 10,
+    reviveTimeout: 3,
     shieldTime: 3,
     starterPackDuration: 15 * 60,
     offerRotate: 45,

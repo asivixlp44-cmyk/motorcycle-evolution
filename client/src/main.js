@@ -205,24 +205,44 @@ $('#btnAuto').addEventListener('click', () => { if (running) setAutoTrain(!autoT
 // Dying bursts the rider and shows the Revive popup: revive where you fell (Bux)
 // with a few seconds of shield, or go back to the lobby.
 let deaths = 0;
-function die() {
+// A crash never costs you the run: you respawn at the last checkpoint a moment later (or
+// right where you crashed with a Revive). The server logs where and why, for the stats.
+function die(cause) {
     if (P.dead || P.shield > 0) return;
     P.dead = true; deaths++;
     burst(P.pos.clone().add(new V3(0, 2.5, 0)), 0xff5a3c);
     sfx('death'); addShake(0.9); rumble(1, 400);
     sendMove(true);
-    showRevive(Math.max(P.stage, stageAt(P.pos.z)));
+    const stage = Math.max(P.stage, stageAt(P.pos.z));
+    net.send('died', { s: stage, c: cause || 'crash' });
+    showRevive(stage);
+}
+// The last checkpoint at or behind z (stage starts and mid-stage points from world.js)
+function checkpointAt(z) {
+    let best = null;
+    for (let i = 0; i < STAGES.length; i++) {
+        const s = STAGES[i];
+        // A crash just past a gate still counts the checkpoint a few studs ahead of it
+        const ahead = z >= s.zS ? 9 : 1;
+        for (const cz of s.checkpoints || [s.zS + 8]) if (cz <= z + ahead && (!best || cz > best.z)) best = { z: cz, y: s.y0, i };
+    }
+    return best;
 }
 actions.revive = (atSpot) => {
     hideRevive();
     if (!P.dead) return;
     P.dead = false;
+    const stage = P.stage;
     if (atSpot) {
-        const stage = P.stage;
         teleport(P.lastSafe.clone(), P.facing);
-        P.stage = stage;
-        P.shield = CFG.shieldTime;
-    } else teleportLobby();
+    } else {
+        const cp = checkpointAt(P.pos.z);
+        if (!cp) { teleportLobby(); return; }
+        teleport(new V3(0, cp.y + 0.5, cp.z), 0);
+        toast('Back to the checkpoint! 🏁', '#7dff6b');
+    }
+    P.stage = stage;
+    P.shield = CFG.shieldTime;
 };
 
 // =====================================================================================
@@ -263,7 +283,8 @@ function updateChase(dt) {
     if (!chase.on || chase.stage !== P.stage) {
         stopChase();
         chase.on = true; chase.stage = P.stage;
-        launchPolice(policeCar(0), P.pos.x, Math.max(s.zS - 8, P.pos.z - 45), 0, s.chase);
+        // Starts well behind you, so there is always a moment to get going
+        launchPolice(policeCar(0), P.pos.x, P.pos.z - 50, 0, s.chase);
         toast('🚨 POLICE CHASE! Ride faster than ' + s.chase + '!', '#ff4a5a');
         sfx('siren'); chase.sirenT = 1.4;
     }
@@ -293,7 +314,11 @@ function updateChase(dt) {
         c.car.rotation.y = c.h + Math.PI;
         const dist = Math.hypot(P.pos.x - c.x, P.pos.z - c.z);
         nearest = Math.min(nearest, dist - 5.5);
-        if (dist < 5 && P.pos.y < s.y0 + 6 + hop) { addShake(1); die(); return; }
+        if (dist < 5 && P.pos.y < s.y0 + 6 + hop) {
+            addShake(1); die('police');
+            if (walkSpeed() <= s.chase) setTimeout(() => toast('🚨 Too slow! Level up (or train on the treadmills) to ride faster than ' + s.chase, '#ffd028'), 600);
+            return;
+        }
     }
     chase.sirenT -= dt;
     if (nearest < 40 && chase.sirenT <= 0) { sfx('siren'); chase.sirenT = 1.4; }
@@ -897,10 +922,10 @@ function update(dt) {
         // Falling: measured from the floor of the stage you are actually standing in
         const here = stageAt(P.pos.z);
         if (here >= 0 && here < P.stage) P.stage = here; // walked back down into an earlier stage
-        if (P.pos.y < (here >= 0 ? STAGES[here].y0 : 0) + CFG.voidY) { P.shield = 0; die(); }
+        if (P.pos.y < (here >= 0 ? STAGES[here].y0 : 0) + CFG.voidY) { P.shield = 0; die('fall'); }
         for (const k of kills) {
             if (!k.active) continue;
-            if (k.max.x > P.pos.x - HW + 0.2 && k.min.x < P.pos.x + HW - 0.2 && k.max.y > P.pos.y + 0.1 && k.min.y < P.pos.y + PH && k.max.z > P.pos.z - HW + 0.2 && k.min.z < P.pos.z + HW - 0.2) { die(); break; }
+            if (k.max.x > P.pos.x - HW + 0.2 && k.min.x < P.pos.x + HW - 0.2 && k.max.y > P.pos.y + 0.1 && k.min.y < P.pos.y + PH && k.max.z > P.pos.z - HW + 0.2 && k.min.z < P.pos.z + HW - 0.2) { die(k.cause); break; }
         }
         P.safeTimer -= dt;
         if (P.onGround && P.safeTimer <= 0 && !(P.ground && (P.ground.belt || P.ground.unsafe))) { P.lastSafe.copy(P.pos); P.safeTimer = 0.3; }
@@ -1152,7 +1177,7 @@ boot();
 if (import.meta.env.DEV) {
     window.__qa = {
         input: (o) => Object.assign(botInput, o), solids, cam,
-        P, S, STAGES, avatarStats, scene,
+        P, S, STAGES, avatarStats, scene, renderer, camera,
         teleport: (x, y, z) => teleport(new V3(x, y, z), 0),
         enter: (i) => actions.enterStage(i),
         buildBike, bikeById, net, buy, deaths: () => deaths, walk: (n) => { qaWalk = n; },

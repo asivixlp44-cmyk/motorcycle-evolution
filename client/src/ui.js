@@ -207,11 +207,11 @@ export function showRevive(stage) {
     $('#reviveReached').textContent = s ? 'You reached Stage ' + (stage + 1) + '!' : 'You fell!';
     $('#revive').hidden = false;
     let left = CFG.reviveTimeout;
-    $('#reviveTimer').textContent = 'Back to the lobby in ' + left + 's';
+    $('#reviveTimer').textContent = 'Back to the checkpoint in ' + left + 's';
     clearInterval(reviveTimer);
     reviveTimer = setInterval(() => {
         left--;
-        $('#reviveTimer').textContent = 'Back to the lobby in ' + Math.max(0, left) + 's';
+        $('#reviveTimer').textContent = 'Back to the checkpoint in ' + Math.max(0, left) + 's';
         if (left <= 0) { $('#buy').hidden = true; pendingBuy = null; actions.revive(false); }
     }, 1000);
 }

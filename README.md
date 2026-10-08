@@ -43,6 +43,16 @@ Or double-click `start-local.bat`. For development, run `npm run dev:server` and
 - **Rebirth** at Level 25: back to Level 1, +50% to all Speed earned and +10 riding speed per rebirth.
 - **Race event** every 5 minutes, Daily Reward, FREE playtime rewards, Auras, Friend Boost, Store, Friends, Avatar and Auto Train work as in the other games.
 
+## Crashes and checkpoints
+
+A crash never sends you back to the lobby. After 3 s you respawn at the last checkpoint: the start of each stage, the edge of the Stage 1 pit, the middle of Stages 3 and 6 and the entrance of the Stage 5 police square. **Revive** (Bux) puts you back right where you crashed. Too slow for the police? A hint says to level up or train.
+
+## Play stats
+
+Every finished session is recorded (no names or ids): length, furthest stage, Wins pads cleared, crashes per stage and their cause (pit, spikes, tunnel car, traffic, truck, police, fall), treadmill time, purchases and rebirths. In MongoDB on Legion (`sessions`), in `server/data/sessions.jsonl` locally.
+
+`GET /api/stats?key=<webhook key>&days=7` sums them up: session length (mean, median, buckets) for new and returning players, the share of players that reach and clear each stage, crashes per stage, the causes, how many left in the lobby or while crashed, treadmill share and purchases.
+
 ## Graphics
 
 - Procedural motorcycles (`client/src/bike.js`) in six styles (dirt, street, sport, hyper, chopper, scooter) with clear-coated paint and chrome that reflect an environment map, spinning wheels, leaning into turns, neon rims and underglow on the top tiers, exhaust smoke, and fire from the pipes on the fire bikes.

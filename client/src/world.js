@@ -1,6 +1,6 @@
 import {
     T, V3, scene, mat, paint, glass, chrome, box, aabb, UNIT, solids, kills, triggers, tickers,
-    texFrom, billboard, textPlane, camera, signBoard, FOG,
+    texFrom, billboard, textPlane, camera, signBoard, FOG, mergeChildren,
 } from './engine.js';
 import { S, actions, net } from './state.js';
 import { facadeMaterial, asphaltMaterial, forceFieldTexture, tileMaterial, studWallMaterial, brickMaterial } from './textures.js';
@@ -71,6 +71,7 @@ function mergeBoxes(list, material, hdr) {
     list.length = 0;
 }
 function flushDecor() {
+    flushStatics();
     mergeBoxes(batch, new T.MeshLambertMaterial({ vertexColors: true }), 0);
     mergeBoxes(glowBatch, new T.MeshBasicMaterial({ vertexColors: true }), 1.45);
 }
@@ -78,13 +79,52 @@ function flushDecor() {
 // =====================================================================================
 // Shared helpers
 // =====================================================================================
-function texturedBox(sx, sy, sz, x, y, z, material) {
-    const m = new T.Mesh(UNIT, material);
-    m.scale.set(sx, sy, sz); m.position.set(x, y, z);
-    m.receiveShadow = true;
-    m.matrixAutoUpdate = false; m.updateMatrix();
-    scene.add(m);
-    return m;
+// Static textured boxes are batched: at the end every face is merged into one mesh per base
+// material, with the texture repeat baked into the UVs (so hundreds of slabs, roads and
+// buildings cost a few dozen draw calls). uvScale(face) can override the repeat per face.
+const statics = [];
+function texturedBox(sx, sy, sz, x, y, z, material, uvScale) {
+    statics.push({ sx, sy, sz, x, y, z, mats: Array.isArray(material) ? material : [material, material, material, material, material, material], uvScale });
+}
+const baseMats = new Map();
+function baseMaterial(src) {
+    if (!src.map) return src;
+    const key = src.type + '|' + src.color.getHex() + '|' + src.map.source.uuid + '|' + src.transparent;
+    if (!baseMats.has(key)) {
+        const m = src.clone();
+        m.map = src.map.clone(); m.map.repeat.set(1, 1); m.map.offset.set(0, 0); m.map.needsUpdate = true;
+        baseMats.set(key, m);
+    }
+    return baseMats.get(key);
+}
+function flushStatics() {
+    const box = new T.BoxGeometry(1, 1, 1).toNonIndexed();
+    const P = box.attributes.position.array, N = box.attributes.normal.array, U = box.attributes.uv.array;
+    const buckets = new Map();
+    for (const b of statics) {
+        for (let f = 0; f < 6; f++) {
+            const src = b.mats[f], mat0 = baseMaterial(src);
+            const sc = b.uvScale ? b.uvScale(f) : src.map ? [src.map.repeat.x, src.map.repeat.y] : [1, 1];
+            if (!buckets.has(mat0)) buckets.set(mat0, { pos: [], nor: [], uv: [] });
+            const k = buckets.get(mat0);
+            for (let v = f * 6; v < f * 6 + 6; v++) {
+                k.pos.push(P[v * 3] * b.sx + b.x, P[v * 3 + 1] * b.sy + b.y, P[v * 3 + 2] * b.sz + b.z);
+                k.nor.push(N[v * 3], N[v * 3 + 1], N[v * 3 + 2]);
+                k.uv.push(U[v * 2] * sc[0], U[v * 2 + 1] * sc[1]);
+            }
+        }
+    }
+    for (const [material, k] of buckets) {
+        const g = new T.BufferGeometry();
+        g.setAttribute('position', new T.Float32BufferAttribute(k.pos, 3));
+        g.setAttribute('normal', new T.Float32BufferAttribute(k.nor, 3));
+        g.setAttribute('uv', new T.Float32BufferAttribute(k.uv, 2));
+        g.computeBoundingSphere();
+        const mesh = new T.Mesh(g, material);
+        mesh.receiveShadow = true; mesh.matrixAutoUpdate = false;
+        scene.add(mesh);
+    }
+    statics.length = 0;
 }
 // Solid slab whose top is at `top`, reaching down to `bottom`
 function slab(sx, sz, x, z, top, bottom, material) {
@@ -140,12 +180,10 @@ function stopSign(x, y, z) {
 // rooftop props and sometimes a neon sign. cx/cz = centre, w along x, d along z.
 function building(cx, cz, w, d, h, y0, color, rng, neon) {
     const style = rng() < 0.55 ? 0 : 1;
-    const fac = facadeMaterial(color, style, Math.max(w, d) / 8, h / 10);
+    const fac = facadeMaterial(color, style, 1, 1);
     const roof = mat(shade(color, 0.7));
-    const m = new T.Mesh(UNIT, [fac, fac, roof, roof, fac, fac]);
-    m.scale.set(w, h, d); m.position.set(cx, y0 + h / 2, cz);
-    m.receiveShadow = true; m.matrixAutoUpdate = false; m.updateMatrix();
-    scene.add(m);
+    // One window bay per ~8 studs across each face, one floor per ~10 studs up
+    texturedBox(w, h, d, cx, y0 + h / 2, cz, [fac, fac, roof, roof, fac, fac], (f) => (f < 2 ? [Math.max(1, Math.round(d / 8)), Math.max(1, Math.round(h / 10))] : f > 3 ? [Math.max(1, Math.round(w / 8)), Math.max(1, Math.round(h / 10))] : [1, 1]));
     deco(w + 1.4, 1.6, d + 1.4, cx, y0 + h + 0.8, cz, shade(color, 0.72));
     deco(w + 0.6, 6.5, d + 0.6, cx, y0 + 3.25, cz, shade(color, 0.55));
     if (rng() < 0.45) deco(4, 2.6, 3.6, cx + (rng() - 0.5) * w * 0.5, y0 + h + 2.9, cz + (rng() - 0.5) * d * 0.4, 0xc8cad8);
@@ -363,6 +401,7 @@ function buildPedestal(d, pos, face) {
     bike.position.set(pos.x, pos.y + 0.4, pos.z);
     bike.rotation.y = face;
     scene.add(bike);
+    mergeChildren(bike.userData.inner);
     const at = new V3(pos.x, pos.y + 1, pos.z);
     tickers.push((dt) => {
         if (camera.position.distanceToSquared(at) > 150 * 150) return;
@@ -641,7 +680,9 @@ function buildPit(s, z0, z1, y0, rng) {
     for (let k = 0; k < 40; k++) glow(0.5, 0.5, 0.5, (rng() * 2 - 1) * EDGE, y0 - depth + 0.6 + rng() * 3, z0 + rng() * len, 0xff7af0);
     for (const sx of [-1, 1]) deco(2, depth, len, sx * (EDGE + 1), y0 - depth / 2, zc, 0x2a1f5a);
     for (const ez of [z0, z1]) deco(EDGE * 2, depth - ROAD_BOTTOM, 1, 0, y0 - ROAD_BOTTOM - (depth - ROAD_BOTTOM) / 2, ez, 0x2a1f5a);
-    const k = aabb(0, y0 - depth + 4, zc, EDGE * 2, 6, len); k.active = true; kills.push(k);
+    const k = aabb(0, y0 - depth + 4, zc, EDGE * 2, 6, len); k.active = true; k.cause = 'pit'; kills.push(k);
+    // Respawn at the pit edge after a fall, not back at the stage start
+    s.checkpoints.push(z0 - 8);
     // Warning sign at the edge
     textPlane([{ t: '⚠ JUMP! (SPACE)', c: '#ffd028', s: '#16121f', px: 110 }], 18, 1024, new V3(0, y0 + 12, z0 - 2), new V3(0, y0 + 12, z0 - 20));
     FLOATERS.forEach(([dz, x, top, d], n) => {
@@ -819,9 +860,15 @@ function buildFinal(i, s, rng) {
 }
 
 const BUILDERS = { street: buildStreet, bridge: buildBridge, tunnels: buildTunnels, highway: buildHighway, chase: buildChase, final: buildFinal };
+// Checkpoints (z) you respawn at after a crash: every stage start, plus a few mid-stage ones
+// placed clear of the hazards
+const MID_CHECKPOINTS = { tunnels: [276], final: [215] };
 function buildStage(i, s) {
     const rng = rngFrom(100 + i * 17);
+    s.checkpoints = [s.zS + 8].concat((MID_CHECKPOINTS[s.type] || []).map((d) => s.zS + d));
     BUILDERS[s.type](i, s, rng);
+    if (s.arena) s.checkpoints.push(s.zS + s.arena.from + 15);
+    s.checkpoints.sort((a, b) => a - b);
     stageSign(i, s);
     landing(i, s, i === STAGES.length - 1);
     const tr = aabb(0, s.y0 + 20, s.zS + 3, s.w, 60, 2);
@@ -878,8 +925,8 @@ function landing(i, s, finish) {
 // each vehicle has a kill box (getting hit crashes you).
 // =====================================================================================
 const traffic = [];
-function vehicleBox(g, sx, sy, sz) {
-    const k = { min: new V3(), max: new V3(), active: true, half: new V3(sx / 2, sy / 2, sz / 2), g };
+function vehicleBox(g, sx, sy, sz, cause) {
+    const k = { min: new V3(), max: new V3(), active: true, half: new V3(sx / 2, sy / 2, sz / 2), g, cause: cause || 'car' };
     kills.push(k);
     return k;
 }
@@ -921,7 +968,7 @@ function spikeStrip(x, z, base, width, phase) {
     spikes.castShadow = true;
     spikes.position.y = base - SPIKES.height - 0.2;
     scene.add(spikes);
-    const k = { min: new V3(x - width / 2, base, z - depth / 2), max: new V3(x + width / 2, base + SPIKES.height * 0.8, z + depth / 2), active: false };
+    const k = { min: new V3(x - width / 2, base, z - depth / 2), max: new V3(x + width / 2, base + SPIKES.height * 0.8, z + depth / 2), active: false, cause: 'spikes' };
     kills.push(k);
     traffic.push({ update(t) {
         const c = (((t + phase) % SPIKES.period) + SPIKES.period) % SPIKES.period;
@@ -960,7 +1007,7 @@ function buildCar(color) {
 function crossing(sx, z, y, period, phase, builder, len, wid, h, faceX, scale) {
     scale = scale || 1;
     len *= scale; wid *= scale; h *= scale;
-    const v = builder(), k = vehicleBox(v, len, h, wid);
+    const v = builder(), k = vehicleBox(v, len, h, wid, faceX ? 'truck' : 'tunnel car');
     v.scale.setScalar(scale);
     k.half.set(len / 2, h / 2, wid / 2);
     const warn = new T.Mesh(UNIT, mat(0xffb51c, { neon: true }));
@@ -1006,7 +1053,7 @@ function buildTraffic() {
     const s4 = STAGES.find((s) => s.type === 'highway');
     if (!s4) return;
     // The truck sweeps across the road just past the Stage 4 wall
-    const truck = buildTruck(), tk = vehicleBox(truck, 16.5, 9, 6.6);
+    const truck = buildTruck(), tk = vehicleBox(truck, 16.5, 9, 6.6, 'truck');
     traffic.push({ update(t) {
         const ph = (t / TRAFFIC.truckPeriod) % 1;
         const dir = ph < 0.5 ? 1 : -1, k = ph < 0.5 ? ph * 2 : (ph - 0.5) * 2;
@@ -1021,7 +1068,7 @@ function buildTraffic() {
     [-12, 0, 12].forEach((lx, lane) => {
         const n = Math.max(1, Math.floor(span / (TRAFFIC.policeGap * 2)));
         for (let c = 0; c < n; c++) {
-            const car = buildPolice(), k = vehicleBox(car, 5.4, 5, 11);
+            const car = buildPolice(), k = vehicleBox(car, 5.4, 5, 11, 'traffic');
             const offset = (c / n) * span + lane * span / 5;
             traffic.push({ update(t) {
                 const z = z1 - ((t * TRAFFIC.policeSpeed + offset) % span);

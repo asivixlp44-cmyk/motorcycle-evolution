@@ -636,13 +636,13 @@ body.touch #speedBuys .btn { font-size: 1.1rem; }
     <!-- "Revive — You were caught! You reached Stage N!" card from the reference -->
     <div id="revive" class="overlay" hidden>
         <div class="card revive-card" role="dialog" aria-labelledby="reviveTitle">
-            <button class="btn g-red x o" id="reviveNo" aria-label="Back to lobby">✕</button>
+            <button class="btn g-red x o" id="reviveNo" aria-label="Back to the checkpoint">✕</button>
             <h2 class="o" id="reviveTitle">Revive</h2>
             <div class="caught o1">💥 You crashed!</div>
             <div class="reached" id="reviveReached">You reached Stage 1!</div>
-            <div class="keep">Revive now and keep your progress!</div>
+            <div class="keep">Revive right here, or go back to the last checkpoint.</div>
             <div class="rev-row"><button class="btn g-green o" id="reviveYes">REVIVE</button><span class="only o1" id="revivePrice">ONLY <i class="bx" aria-hidden="true"></i>9</span></div>
-            <div id="reviveTimer">Back to the lobby in 10s</div>
+            <div id="reviveTimer">Back to the checkpoint in 3s</div>
         </div>
     </div>
 

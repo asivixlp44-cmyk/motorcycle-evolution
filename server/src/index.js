@@ -9,6 +9,7 @@ import { SpeedRoom, grantPurchase } from './SpeedRoom.js';
 import { WEBHOOK_SECRET, WEBHOOK_KEY_SHA256, BUX_MODE, installStatReporter } from './bloxity.js';
 import { saveProfiles, firstDelivery } from './profiles.js';
 import { skuLookup } from '../../shared/config.js';
+import { statsSummary } from './stats.js';
 
 // Serves the built client (client/dist) and the game room on the same port,
 // so one Node host is enough to run the whole game.
@@ -57,6 +58,13 @@ const app = config({
     initializeExpress: (expressApp) => {
         expressApp.get('/health', (req, res) => res.json({ ok: true }));
         expressApp.post('/api/legion-webhook', express.json({ limit: '32kb' }), buxWebhook);
+        // Play stats (aggregate, no names): /api/stats?key=<webhook key>&days=7
+        expressApp.get('/api/stats', async (req, res) => {
+            const key = typeof req.query.key === 'string' ? req.query.key : '';
+            if (BUX_MODE && !(key && sameHash(key, WEBHOOK_KEY_SHA256))) return res.status(401).json({ error: 'bad key' });
+            const days = Math.min(60, Math.max(1, Number(req.query.days) || 7));
+            try { res.json(await statsSummary(days)); } catch (e) { res.status(503).json({ error: e.message }); }
+        });
         if (fs.existsSync(CLIENT_DIST)) expressApp.use(express.static(CLIENT_DIST));
     },
 });

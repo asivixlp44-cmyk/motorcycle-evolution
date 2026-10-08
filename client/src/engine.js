@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 export const T = THREE;
 export const V3 = THREE.Vector3;
@@ -467,4 +468,30 @@ export function lerpAngle(a, b, k) {
     if (d > Math.PI) d -= Math.PI * 2;
     if (d < -Math.PI) d += Math.PI * 2;
     return a + d * k;
+}
+
+// Merges every mesh under root into one mesh per material (for objects that never animate
+// their parts, like the showroom bikes): dozens of draw calls become a handful
+export function mergeChildren(root) {
+    root.updateMatrixWorld(true);
+    const inv = new T.Matrix4().copy(root.matrixWorld).invert(), m4 = new T.Matrix4();
+    const buckets = new Map(), done = [];
+    root.traverse((o) => {
+        if (!o.isMesh || o.isInstancedMesh || Array.isArray(o.material)) return;
+        const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
+        for (const name of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(name)) g.deleteAttribute(name);
+        if (!g.attributes.uv) return;
+        g.applyMatrix4(m4.multiplyMatrices(inv, o.matrixWorld));
+        if (!buckets.has(o.material)) buckets.set(o.material, { list: [], shadow: false });
+        const b = buckets.get(o.material);
+        b.list.push(g); b.shadow = b.shadow || o.castShadow;
+        done.push(o);
+    });
+    for (const o of done) o.parent.remove(o);
+    for (const [material, b] of buckets) {
+        const mesh = new T.Mesh(mergeGeometries(b.list), material);
+        mesh.castShadow = b.shadow;
+        root.add(mesh);
+        for (const g of b.list) g.dispose();
+    }
 }

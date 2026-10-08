@@ -2,7 +2,7 @@ import { Room } from 'colyseus';
 import { GameState, PlayerState } from './schema.js';
 import {
     getProfile, hasProfile, markDirty, saveProfiles, adoptGuestProgress, loadProfile, releaseProfile,
-    topProfiles, claimGrants, queueGrant, USE_DB,
+    topProfiles, claimGrants, queueGrant, recordSession, USE_DB,
 } from './profiles.js';
 import { sealProfile, openSave } from './saves.js';
 import { verifyBloxityToken, BUX_MODE } from './bloxity.js';
@@ -57,6 +57,7 @@ export class SpeedRoom extends Room {
         this.onMessage('chat', (client, m) => this.onChat(client, m));
         this.onMessage('friends', (client, m) => this.onFriends(client, m));
         this.onMessage('raceJoin', (client) => this.onRaceJoin(client));
+        this.onMessage('died', (client, m) => this.onDied(client, m));
 
         this.setSimulationInterval((dt) => this.tick(dt), 100);
         this.clock.setInterval(() => this.broadcastBoards(), 10000);
@@ -99,6 +100,11 @@ export class SpeedRoom extends Room {
             client, profile, player,
             moving: false, lastMove: 0, gainT: 0, friends: 0, treadMult: 0, treadSeen: 0,
             joinedAt: Date.now(), freeClaimed: {}, cooldowns: new Map(), guest, lastChat: 0, padArmed: true,
+            // Play stats for /api/stats: how far this session got and where it crashed
+            stats: {
+                fresh: Date.now() - (profile.firstPlay || 0) < 60000, maxStage: -1, pads: {}, deaths: {}, causes: {}, buys: 0,
+                speed0: profile.speed, wins0: profile.wins, level0: profile.level, rebirths0: profile.rebirths, treadSecs: 0,
+            },
         });
         this.syncPublic(client.sessionId);
         client.send('hello', { now: Date.now(), bux: BUX_MODE, bloxity: uid.startsWith('legion_') });
@@ -124,6 +130,7 @@ export class SpeedRoom extends Room {
 
     onLeave(client) {
         const s = this.sessions.get(client.sessionId);
+        if (s) this.logSession(s);
         // Left while training: the treadmill keeps earning until they come back (payOffline)
         if (s && Date.now() - s.treadSeen < 3000 && s.treadMult > 0) s.profile.offline = { mult: s.treadMult, at: Date.now() };
         this.state.players.delete(client.sessionId);
@@ -132,8 +139,30 @@ export class SpeedRoom extends Room {
         if (s && !isOnline(s.profile.uid)) releaseProfile(s.profile.uid, isOnline);
     }
 
+// One record per finished session, for /api/stats (no names, no ids)
+    logSession(s) {
+        const st = s.stats, p = s.profile, pl = s.player;
+        if (!st || st.logged) return;
+        st.logged = true;
+        recordSession({
+            at: new Date(), secs: Math.round((Date.now() - s.joinedAt) / 1000), fresh: st.fresh,
+            maxStage: st.maxStage, endStage: stageAt(pl.z), endDead: pl.anim === 3,
+            pads: st.pads, deaths: st.deaths, causes: st.causes, buys: st.buys, treadSecs: Math.round(st.treadSecs),
+            level0: st.level0, level1: p.level, wins0: st.wins0, wins1: p.wins, rebirths: p.rebirths - st.rebirths0,
+            bike: p.equipped, bloxity: p.uid.startsWith('legion_'),
+        }).catch((e) => console.warn('[stats]', e.message));
+    }
+    onDied(client, m) {
+        const s = this.sessions.get(client.sessionId);
+        if (!s || !m || !this.cooldown(s, 'died', 0.5)) return;
+        const st = STAGES[m.s | 0] ? m.s | 0 : -1;
+        const cause = String(m.c || 'crash').replace(/[^a-z ]/g, '').slice(0, 16) || 'crash';
+        s.stats.deaths[st] = (s.stats.deaths[st] || 0) + 1;
+        s.stats.causes[cause] = (s.stats.causes[cause] || 0) + 1;
+    }
+
     // Colyseus awaits this on SIGTERM, which is how Legion stops a pod on every deploy
-    onDispose() { liveRooms.delete(this); markDirty(); return saveProfiles(); }
+    onDispose() { liveRooms.delete(this); for (const s of this.sessions.values()) this.logSession(s); markDirty(); return saveProfiles(); }
 
     async applyQueuedGrants() {
         const uids = [...this.sessions.values()].map((s) => s.profile.uid);
@@ -212,7 +241,7 @@ export class SpeedRoom extends Room {
             if (!s.moving || now - s.lastMove > 700 || pl.anim === 3) continue;
             let mult = 1;
             const tread = treadmillAt(pl.x, pl.y, pl.z);
-            if (tread && !this.treadLocked(s.profile, tread)) { mult = tread.mult; s.treadMult = mult; s.treadSeen = now; }
+            if (tread && !this.treadLocked(s.profile, tread)) { mult = tread.mult; s.treadMult = mult; s.treadSeen = now; s.stats.treadSecs += CFG.gainInterval; }
             const got = this.addSpeed(s, this.stepSpeed(s.profile) * mult, true);
             this.syncPublic(id);
             if (mult > 1) s.client.send('gain', { n: got, tread: 1 });
@@ -260,6 +289,8 @@ export class SpeedRoom extends Room {
         pl.anim = clamp(m.a | 0, 0, 3);
         s.moving = !!m.mv;
         s.lastMove = Date.now();
+        const here = stageAt(pl.z);
+        if (here > s.stats.maxStage) s.stats.maxStage = here;
         if (pl.z < STAGES[0].zS - 2) s.padArmed = true;
     }
 
@@ -288,6 +319,7 @@ export class SpeedRoom extends Room {
         if (!s.padArmed || !this.cooldown(s, 'pad', 2)) return;
         s.padArmed = false;
         const got = this.addWins(s, st.wins, true);
+        s.stats.pads[m.s | 0] = (s.stats.pads[m.s | 0] || 0) + 1;
         this.syncPublic(client.sessionId);
         client.send('wins', { n: got });
         const r = this.race;
@@ -454,6 +486,7 @@ export class SpeedRoom extends Room {
         const m = { kind, key };
         const client = s.client;
         const p = s.profile;
+        if (s.stats) s.stats.buys++;
         if (m.kind === 'pass') {
             const pass = PASSES[m.key];
             if (!pass) return false;
